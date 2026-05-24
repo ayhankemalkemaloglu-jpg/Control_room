@@ -11,7 +11,7 @@ import {
 } from "lightweight-charts";
 
 import { fetchKlines } from "@/lib/api";
-import type { ChartTimeframe } from "@/types/hermes";
+import type { Candle, ChartTimeframe } from "@/types/hermes";
 
 interface PriceChartProps {
   symbol: string;
@@ -21,6 +21,19 @@ interface PriceChartProps {
 }
 
 type Status = "loading" | "ready" | "empty" | "error";
+
+/** How often the open chart re-polls the latest candle for live movement. */
+const LIVE_REFRESH_MS = 10_000;
+
+function toBar(c: Candle) {
+  return {
+    time: c.time as UTCTimestamp,
+    open: c.open,
+    high: c.high,
+    low: c.low,
+    close: c.close,
+  };
+}
 
 export function PriceChart({ symbol, timeframe, entryPrice }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,36 +82,47 @@ export function PriceChart({ symbol, timeframe, entryPrice }: PriceChartProps) {
     };
   }, []);
 
-  // Load candles whenever the symbol or timeframe changes.
+  // Load history once, then keep the chart live by re-polling the latest
+  // candle and updating only the last bar (preserves the user's zoom/pan and
+  // appends a fresh bar automatically when a new period opens).
   useEffect(() => {
     let cancelled = false;
     setStatus("loading");
 
-    fetchKlines(symbol, timeframe)
-      .then((candles) => {
+    const loadInitial = async () => {
+      try {
+        const candles = await fetchKlines(symbol, timeframe);
         if (cancelled || !seriesRef.current) return;
         if (candles.length === 0) {
           setStatus("empty");
           return;
         }
-        seriesRef.current.setData(
-          candles.map((c) => ({
-            time: c.time as UTCTimestamp,
-            open: c.open,
-            high: c.high,
-            low: c.low,
-            close: c.close,
-          })),
-        );
+        seriesRef.current.setData(candles.map(toBar));
         chartRef.current?.timeScale().fitContent();
         setStatus("ready");
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setStatus("error");
-      });
+      }
+    };
+
+    const loadLive = async () => {
+      try {
+        const candles = await fetchKlines(symbol, timeframe);
+        if (cancelled || !seriesRef.current || candles.length === 0) return;
+        // update() only accepts the last bar or a newer one, so push just the
+        // most recent candle — it updates the forming bar or appends a new one.
+        seriesRef.current.update(toBar(candles[candles.length - 1]));
+      } catch {
+        // transient poll failure — keep the existing data on screen.
+      }
+    };
+
+    void loadInitial();
+    const timer = window.setInterval(() => void loadLive(), LIVE_REFRESH_MS);
 
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
     };
   }, [symbol, timeframe]);
 
