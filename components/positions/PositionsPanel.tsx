@@ -49,6 +49,7 @@ function PositionRow({
   position: Trade;
   live?: LivePnlPosition;
 }) {
+  const openChart = useHermesStore((s) => s.openChart);
   const long = position.side === "LONG";
   // Prefer the live unrealized P&L for open positions; fall back to the stored
   // (close-time) value so closed/unpriced rows still render something.
@@ -56,7 +57,19 @@ function PositionRow({
   const currentPrice = live?.current_price ?? null;
 
   return (
-    <article className="rounded-[12px] border border-border bg-secondary/30 p-3">
+    <button
+      type="button"
+      onClick={() =>
+        openChart({
+          symbol: position.symbol,
+          entryPrice: position.entry_price,
+          side: position.side,
+          strategy: position.strategy,
+        })
+      }
+      title={`${shortSymbol(position.symbol)} grafiğini aç`}
+      className="w-full rounded-[12px] border border-border bg-secondary/30 p-3 text-left transition-colors hover:border-gold/30 hover:bg-secondary/50"
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="font-mono text-sm text-foreground tabular">
@@ -90,7 +103,7 @@ function PositionRow({
           value={currentPrice !== null ? formatPrice(currentPrice) : "—"}
         />
       </div>
-    </article>
+    </button>
   );
 }
 
