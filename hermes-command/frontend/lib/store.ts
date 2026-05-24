@@ -1,8 +1,8 @@
 import { create } from "zustand";
 
 import type {
+  Briefing,
   ConnectionStatus,
-  HourlyBriefing,
   LayerId,
   Stats,
   Trade,
@@ -20,8 +20,8 @@ const countryTimers = new Map<string, ReturnType<typeof setTimeout>>();
 interface HermesStore {
   connection: ConnectionStatus;
   activeLayer: LayerId;
-  latestBriefing: HourlyBriefing | null;
-  briefings: HourlyBriefing[];
+  latestBriefing: Briefing | null;
+  briefings: Briefing[];
   /** Currently open trades — newest first (right panel). */
   openPositions: Trade[];
   /** Closed trade history — newest first. */
@@ -36,7 +36,7 @@ interface HermesStore {
 
   setConnection: (status: ConnectionStatus) => void;
   setActiveLayer: (layer: LayerId) => void;
-  pushBriefing: (briefing: HourlyBriefing) => void;
+  pushBriefing: (briefing: Briefing) => void;
   /** Prepend a freshly opened position (from `trade:open`). */
   addOpenPosition: (trade: Trade) => void;
   /** Move a position out of `openPositions` into `closedTrades` by hash. */

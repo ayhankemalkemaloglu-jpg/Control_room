@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 
-import { LAYERS } from "@/lib/mock";
+import { LAYERS } from "@/lib/layers";
 import { useHermesStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 

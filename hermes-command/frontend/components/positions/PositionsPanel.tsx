@@ -66,7 +66,7 @@ function PositionRow({ position }: { position: Trade }) {
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2">
         <Stat label="Giriş" value={formatPrice(position.entry_price)} />
-        <Stat label="Strateji" value={position.strategy} />
+        <Stat label="Strateji" value={position.strategy ?? "—"} />
         <Stat
           label="PnL %"
           value={pnlPct !== null ? formatSignedPct(pnlPct) : "—"}

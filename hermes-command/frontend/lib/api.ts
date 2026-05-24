@@ -1,4 +1,4 @@
-import type { HourlyBriefing, Stats, Trade } from "@/types/hermes";
+import type { Briefing, Stats, Trade } from "@/types/hermes";
 
 /**
  * REST hydration client for the Hermes backend. The socket stream
@@ -62,6 +62,6 @@ export async function fetchStats(): Promise<Stats | null> {
   return asStats(await hermesFetch("/trades/stats?window=24h"));
 }
 
-export async function fetchBriefings(): Promise<HourlyBriefing[]> {
-  return asArray<HourlyBriefing>(await hermesFetch("/briefings?limit=6"));
+export async function fetchBriefings(): Promise<Briefing[]> {
+  return asArray<Briefing>(await hermesFetch("/briefings?limit=6"));
 }

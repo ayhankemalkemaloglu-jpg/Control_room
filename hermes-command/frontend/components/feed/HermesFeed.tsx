@@ -5,14 +5,54 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Panel } from "@/components/common/Panel";
 import { SentimentPill } from "@/components/common/SentimentPill";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { deltaColor, formatHM, formatSignedPct } from "@/lib/format";
+import { formatHM, shortSymbol } from "@/lib/format";
 import { useHermesStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
-import type { HourlyBriefing } from "@/types/hermes";
+import type { Briefing, Sentiment, Trend } from "@/types/hermes";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-function BriefingCard({ briefing }: { briefing: HourlyBriefing }) {
+/**
+ * The backend's `overall` is a single word (e.g. "Bullish", "Range"), not a
+ * structured sentiment. Map it to a colour bucket for the pill; anything we
+ * don't recognise reads as neutral.
+ */
+function overallSentiment(overall: string | null): Sentiment {
+  const w = (overall ?? "").toLowerCase();
+  if (w.includes("bull") || w.includes("up") || w.includes("long")) {
+    return "bullish";
+  }
+  if (w.includes("bear") || w.includes("down") || w.includes("short")) {
+    return "bearish";
+  }
+  return "neutral";
+}
+
+const TREND_GLYPH: Record<Trend, { icon: string; color: string }> = {
+  trend_up: { icon: "▲", color: "text-bullish" },
+  trend_down: { icon: "▼", color: "text-bearish" },
+  range: { icon: "►", color: "text-neutral" },
+};
+
+/** Aggregate scores arrive as floats; render two decimals, em-dash when null. */
+function fmtAggr(value: number | null): string {
+  return value === null ? "—" : value.toFixed(2);
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        {label}
+      </span>
+      <span className="font-mono text-xs text-foreground tabular">{value}</span>
+    </div>
+  );
+}
+
+function BriefingCard({ briefing }: { briefing: Briefing }) {
+  const sentiment = overallSentiment(briefing.overall);
+  const hour = briefing.hour_label ?? formatHM(briefing.timestamp);
+
   return (
     <motion.article
       layout
@@ -27,32 +67,54 @@ function BriefingCard({ briefing }: { briefing: HourlyBriefing }) {
           Saatlik Brifing
         </span>
         <span className="font-mono text-[10px] text-muted-foreground tabular">
-          {formatHM(briefing.timestamp)}
+          {hour}
         </span>
       </div>
-      <p className="mt-2 text-sm leading-snug text-foreground">
-        {briefing.overall.headline}
-      </p>
-      <div className="mt-3 flex items-center justify-between">
-        <SentimentPill
-          sentiment={briefing.overall.sentiment}
-          score={briefing.overall.score}
-        />
-        <span className="text-xs text-muted-foreground">
-          Lider{" "}
-          <span className="font-mono text-foreground tabular">
-            {briefing.leader.symbol}
-          </span>{" "}
-          <span
-            className={cn(
-              "font-mono tabular",
-              deltaColor(briefing.leader.changePct),
-            )}
-          >
-            {formatSignedPct(briefing.leader.changePct)}
+
+      <div className="mt-2 flex items-center justify-between">
+        <SentimentPill sentiment={sentiment} />
+        {briefing.overall && (
+          <span className="font-mono text-[11px] uppercase tracking-wider text-foreground">
+            {briefing.overall}
           </span>
-        </span>
+        )}
       </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <MiniStat label="Kripto" value={fmtAggr(briefing.crypto_aggr)} />
+        <MiniStat label="Hisse" value={fmtAggr(briefing.stock_aggr)} />
+        <MiniStat
+          label="Lider"
+          value={briefing.leader ? shortSymbol(briefing.leader) : "—"}
+        />
+      </div>
+
+      {briefing.symbols.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {briefing.symbols.slice(0, 8).map((s) => {
+            const glyph = TREND_GLYPH[s.trend];
+            return (
+              <span
+                key={s.symbol}
+                className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] tabular"
+              >
+                <span className={glyph.color}>{glyph.icon}</span>
+                <span className="text-foreground">{shortSymbol(s.symbol)}</span>
+                <span className="text-muted-foreground">{s.aggr.toFixed(2)}</span>
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {briefing.open_positions_count !== null && (
+        <p className="mt-2 text-[10px] text-muted-foreground">
+          Açık pozisyon:{" "}
+          <span className="font-mono text-foreground tabular">
+            {briefing.open_positions_count}
+          </span>
+        </p>
+      )}
     </motion.article>
   );
 }
