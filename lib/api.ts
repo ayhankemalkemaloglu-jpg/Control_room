@@ -3,6 +3,7 @@ import type {
   Candle,
   ChartTimeframe,
   Health,
+  NewsItem,
   Stats,
   StatsWindow,
   Trade,
@@ -68,6 +69,12 @@ export async function fetchClosedTrades(): Promise<Trade[]> {
 
 export async function fetchStats(window: StatsWindow = "24h"): Promise<Stats | null> {
   return asStats(await hermesFetch(`/trades/stats?window=${window}`));
+}
+
+export async function fetchNews(category = "crypto"): Promise<NewsItem[]> {
+  return asArray<NewsItem>(
+    await hermesFetch(`/news?category=${encodeURIComponent(category)}`),
+  );
 }
 
 export async function fetchBriefings(): Promise<Briefing[]> {

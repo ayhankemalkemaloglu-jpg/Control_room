@@ -6,11 +6,14 @@ import { PuzzleGlobe } from "@/components/globe/PuzzleGlobe";
 import { LayerSwitcher } from "@/components/globe/LayerSwitcher";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { TopBar } from "@/components/layout/TopBar";
+import { NewsLayer } from "@/components/news/NewsLayer";
 import { PositionsPanel } from "@/components/positions/PositionsPanel";
 import { useHermesSocket } from "@/hooks/useHermesSocket";
+import { useHermesStore } from "@/lib/store";
 
 export function Dashboard() {
   useHermesSocket();
+  const activeLayer = useHermesStore((s) => s.activeLayer);
 
   return (
     <div className="flex h-screen min-w-[1440px] flex-col bg-background text-foreground">
@@ -23,7 +26,7 @@ export function Dashboard() {
           <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2">
             <LayerSwitcher />
           </div>
-          <PuzzleGlobe />
+          {activeLayer === "news" ? <NewsLayer /> : <PuzzleGlobe />}
         </section>
 
         <PositionsPanel />

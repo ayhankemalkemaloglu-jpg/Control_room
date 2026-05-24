@@ -200,6 +200,17 @@ export interface ChartTarget {
   strategy?: string | null;
 }
 
+/* ---- News (backend routes/news.ts → GET /news) ---- */
+
+export interface NewsItem {
+  title: string;
+  url: string;
+  source: string;
+  age: string | null;
+  description: string | null;
+  thumbnail: string | null;
+}
+
 /* ---- Frontend-only view models ---- */
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
