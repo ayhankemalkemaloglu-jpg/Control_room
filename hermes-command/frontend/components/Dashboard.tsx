@@ -1,7 +1,7 @@
 "use client";
 
 import { HermesFeed } from "@/components/feed/HermesFeed";
-import { GlobeView } from "@/components/globe/GlobeView";
+import { PuzzleGlobe } from "@/components/globe/PuzzleGlobe";
 import { LayerSwitcher } from "@/components/globe/LayerSwitcher";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { TopBar } from "@/components/layout/TopBar";
@@ -22,7 +22,7 @@ export function Dashboard() {
           <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2">
             <LayerSwitcher />
           </div>
-          <GlobeView />
+          <PuzzleGlobe />
         </section>
 
         <PositionsPanel />
