@@ -175,6 +175,31 @@ export interface ServerToClientEvents {
 
 export type ClientToServerEvents = Record<string, never>;
 
+/* ---- Charts (backend routes/charts.ts → GET /charts/:symbol) ---- */
+
+export type ChartTimeframe = "1m" | "5m" | "15m" | "1h" | "4h" | "1d";
+
+/** One OHLCV candle; `time` is seconds (Lightweight Charts UTCTimestamp). */
+export interface Candle {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+/**
+ * What the chart modal is focused on. Opened from a feed symbol chip with just
+ * a symbol, or from a position row with entry price / side for the overlay.
+ */
+export interface ChartTarget {
+  symbol: string;
+  entryPrice?: number;
+  side?: "LONG" | "SHORT";
+  strategy?: string | null;
+}
+
 /* ---- Frontend-only view models ---- */
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";

@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 import type {
   Briefing,
+  ChartTarget,
   ConnectionStatus,
   Health,
   LayerId,
@@ -40,6 +41,8 @@ interface HermesStore {
   liveTotalPnlPct: number | null;
   /** Latest spot price per symbol (from price:update). */
   livePrices: Record<string, number>;
+  /** Symbol the chart modal is showing; null = modal closed. */
+  chartTarget: ChartTarget | null;
   voiceTranscript: string;
   /** ISO_A2 -> timestamp (ms) of the most recent activation. */
   activeCountries: Map<string, number>;
@@ -60,6 +63,10 @@ interface HermesStore {
   applyPnlUpdate: (payload: PnlUpdatePayload) => void;
   /** Record a symbol's latest spot price from a price:update tick. */
   applyPriceUpdate: (payload: PriceUpdatePayload) => void;
+  /** Open the chart modal for a symbol (optionally with position context). */
+  openChart: (target: ChartTarget) => void;
+  /** Close the chart modal. */
+  closeChart: () => void;
   /** Replace open positions wholesale (REST hydration). */
   setOpenPositions: (positions: Trade[]) => void;
   /** Replace closed trades wholesale (REST hydration). */
@@ -84,6 +91,7 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
   livePnl: {},
   liveTotalPnlPct: null,
   livePrices: {},
+  chartTarget: null,
   voiceTranscript: "",
   activeCountries: new Map<string, number>(),
   highlightedCountry: null,
@@ -121,6 +129,9 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
     set((state) => ({
       livePrices: { ...state.livePrices, [payload.symbol]: payload.price },
     })),
+
+  openChart: (target) => set({ chartTarget: target }),
+  closeChart: () => set({ chartTarget: null }),
 
   setOpenPositions: (positions) => set({ openPositions: positions }),
   setClosedTrades: (trades) => set({ closedTrades: trades }),

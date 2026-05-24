@@ -50,6 +50,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 }
 
 function BriefingCard({ briefing }: { briefing: Briefing }) {
+  const openChart = useHermesStore((s) => s.openChart);
   const sentiment = overallSentiment(briefing.overall);
   const hour = briefing.hour_label ?? formatHM(briefing.timestamp);
 
@@ -94,14 +95,17 @@ function BriefingCard({ briefing }: { briefing: Briefing }) {
           {briefing.symbols.slice(0, 8).map((s) => {
             const glyph = TREND_GLYPH[s.trend];
             return (
-              <span
+              <button
                 key={s.symbol}
-                className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] tabular"
+                type="button"
+                onClick={() => openChart({ symbol: s.symbol })}
+                title={`${shortSymbol(s.symbol)} grafiğini aç`}
+                className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] tabular transition-colors hover:border-gold/40 hover:bg-secondary/60"
               >
                 <span className={glyph.color}>{glyph.icon}</span>
                 <span className="text-foreground">{shortSymbol(s.symbol)}</span>
                 <span className="text-muted-foreground">{s.aggr.toFixed(2)}</span>
-              </span>
+              </button>
             );
           })}
         </div>

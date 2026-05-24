@@ -1,5 +1,6 @@
 "use client";
 
+import { ChartModal } from "@/components/chart/ChartModal";
 import { HermesFeed } from "@/components/feed/HermesFeed";
 import { PuzzleGlobe } from "@/components/globe/PuzzleGlobe";
 import { LayerSwitcher } from "@/components/globe/LayerSwitcher";
@@ -29,6 +30,7 @@ export function Dashboard() {
       </main>
 
       <BottomBar />
+      <ChartModal />
     </div>
   );
 }

@@ -1,4 +1,11 @@
-import type { Briefing, Health, Stats, Trade } from "@/types/hermes";
+import type {
+  Briefing,
+  Candle,
+  ChartTimeframe,
+  Health,
+  Stats,
+  Trade,
+} from "@/types/hermes";
 
 /**
  * REST hydration client for the Hermes backend. The socket stream
@@ -64,6 +71,21 @@ export async function fetchStats(): Promise<Stats | null> {
 
 export async function fetchBriefings(): Promise<Briefing[]> {
   return asArray<Briefing>(await hermesFetch("/briefings?limit=6"));
+}
+
+/** OHLCV candles for charting. Throws on failure so the chart can show an error state. */
+export async function fetchKlines(
+  symbol: string,
+  timeframe: ChartTimeframe,
+  limit = 200,
+): Promise<Candle[]> {
+  const json = await hermesFetch(
+    `/charts/${encodeURIComponent(symbol)}?timeframe=${timeframe}&limit=${limit}`,
+  );
+  if (json && typeof json === "object" && Array.isArray((json as { candles?: unknown }).candles)) {
+    return (json as { candles: Candle[] }).candles;
+  }
+  return [];
 }
 
 /**
