@@ -1,5 +1,8 @@
 "use client";
 
+import { useState } from "react";
+
+import { StatsModal } from "@/components/stats/StatsModal";
 import { VoiceButton } from "@/components/voice/VoiceButton";
 import { deltaColor, formatSignedPct } from "@/lib/format";
 import { useHermesStore } from "@/lib/store";
@@ -67,6 +70,7 @@ function TopMetrics() {
 export function TopBar() {
   const connection = useHermesStore((s) => s.connection);
   const meta = CONNECTION_META[connection];
+  const [statsOpen, setStatsOpen] = useState(false);
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-6">
@@ -82,6 +86,13 @@ export function TopBar() {
       <TopMetrics />
 
       <div className="flex items-center gap-5">
+        <button
+          type="button"
+          onClick={() => setStatsOpen(true)}
+          className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Performans
+        </button>
         <div className="flex items-center gap-2">
           <span
             className={cn(
@@ -94,6 +105,8 @@ export function TopBar() {
         </div>
         <VoiceButton />
       </div>
+
+      <StatsModal open={statsOpen} onClose={() => setStatsOpen(false)} />
     </header>
   );
 }

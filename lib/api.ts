@@ -4,6 +4,7 @@ import type {
   ChartTimeframe,
   Health,
   Stats,
+  StatsWindow,
   Trade,
 } from "@/types/hermes";
 
@@ -65,8 +66,8 @@ export async function fetchClosedTrades(): Promise<Trade[]> {
   return asArray<Trade>(await hermesFetch("/trades?status=CLOSED&limit=50"));
 }
 
-export async function fetchStats(): Promise<Stats | null> {
-  return asStats(await hermesFetch("/trades/stats?window=24h"));
+export async function fetchStats(window: StatsWindow = "24h"): Promise<Stats | null> {
+  return asStats(await hermesFetch(`/trades/stats?window=${window}`));
 }
 
 export async function fetchBriefings(): Promise<Briefing[]> {
