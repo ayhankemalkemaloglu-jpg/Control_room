@@ -15,17 +15,28 @@ import type { GlobeMethods } from "react-globe.gl";
 import { LiveDot } from "@/components/common/LiveDot";
 import { useHermesStore } from "@/lib/store";
 
-/** Altitudes (puzzle-piece extrusion heights). */
-const ALT_DEFAULT = 0.008;
-const ALT_HOVER = 0.04;
-const ALT_PINNED = 0.06;
-const ALT_ACTIVE = 0.1; // news/event highlight
+/**
+ * Altitudes (puzzle-piece extrusion heights). Bases stay on the globe
+ * surface; only the cap height changes, so pieces extrude straight up
+ * without drifting in X/Z. Priority: highlight > active > pinned > hover.
+ */
+const ALT_DEFAULT = 0.025;
+const ALT_HOVER = 0.07;
+const ALT_PINNED = 0.1;
+const ALT_ACTIVE = 0.16; // news/event
+const ALT_HIGHLIGHT = 0.18; // manual spotlight (tallest)
 
-/** Colors — solid, no gradients. */
+/** Cap colors — solid, no gradients. */
 const CAP_DEFAULT = "#c9a961b3"; // champagne gold, ~70% opacity
-const CAP_ACTIVE = "#f0d896"; // bright gold highlight
-const SIDE_COLOR = "#8a7340"; // darker gold side walls (puzzle depth)
-const STROKE_COLOR = "#0a0a0c"; // background color -> thin puzzle gaps
+const CAP_ACTIVE = "#f0d896"; // bright gold (news)
+const CAP_HIGHLIGHT = "#f5e0a8"; // brightest, shimmering gold (spotlight)
+
+/** Side-wall colors — give the "thick puzzle piece" depth. */
+const SIDE_DEFAULT = "#3a2e1a"; // dark matte champagne-brown
+const SIDE_HIGHLIGHT = "#8a7340"; // lifted gold wall when spotlighted
+
+/** Pure-black borders → crisp puzzle-piece contours / gaps. */
+const STROKE_COLOR = "#000000";
 const ATMOSPHERE_COLOR = "#c9a961";
 
 const GEOJSON_URL = "/data/countries.geojson";
@@ -61,6 +72,7 @@ function PuzzleGlobeImpl() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const resumeTimer = useRef<number | null>(null);
+  const introTimer = useRef<number | null>(null);
 
   const [GlobeComp, setGlobeComp] = useState<GlobeComponent | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -69,7 +81,9 @@ function PuzzleGlobeImpl() {
   const [pinned, setPinned] = useState<Set<string>>(() => new Set());
 
   const activeCountries = useHermesStore((s) => s.activeCountries);
+  const highlightedCountry = useHermesStore((s) => s.highlightedCountry);
   const triggerCountry = useHermesStore((s) => s.triggerCountry);
+  const setHighlight = useHermesStore((s) => s.setHighlight);
 
   // Load react-globe.gl on the client only (WebGL — never on the server),
   // keeping a direct component reference so the ref forwards cleanly.
@@ -111,7 +125,7 @@ function PuzzleGlobeImpl() {
     };
   }, []);
 
-  // Dark globe sphere (#0a0a0c) — countries float above it.
+  // Dark globe sphere (#0a0a0c) — visible as ocean; countries float above it.
   const globeMaterial = useMemo(
     () => new THREE.MeshPhongMaterial({ color: "#0a0a0c" }),
     [],
@@ -134,24 +148,36 @@ function PuzzleGlobeImpl() {
     return () => window.clearInterval(id);
   }, [isoPool, triggerCountry]);
 
+  // Priority: highlight > active (news) > pinned > hover > default.
   const polygonAltitude = useCallback(
     (obj: object) => {
       const feat = obj as CountryFeature;
       const iso = isoOf(feat);
+      if (highlightedCountry === iso) return ALT_HIGHLIGHT;
       if (activeCountries.has(iso)) return ALT_ACTIVE;
       if (pinned.has(iso)) return ALT_PINNED;
       if (hovered === feat) return ALT_HOVER;
       return ALT_DEFAULT;
     },
-    [activeCountries, pinned, hovered],
+    [highlightedCountry, activeCountries, pinned, hovered],
   );
 
   const polygonCapColor = useCallback(
+    (obj: object) => {
+      const iso = isoOf(obj as CountryFeature);
+      if (highlightedCountry === iso) return CAP_HIGHLIGHT;
+      if (activeCountries.has(iso)) return CAP_ACTIVE;
+      return CAP_DEFAULT;
+    },
+    [highlightedCountry, activeCountries],
+  );
+
+  const polygonSideColor = useCallback(
     (obj: object) =>
-      activeCountries.has(isoOf(obj as CountryFeature))
-        ? CAP_ACTIVE
-        : CAP_DEFAULT,
-    [activeCountries],
+      highlightedCountry === isoOf(obj as CountryFeature)
+        ? SIDE_HIGHLIGHT
+        : SIDE_DEFAULT,
+    [highlightedCountry],
   );
 
   const handleHover = useCallback((obj: object | null) => {
@@ -199,11 +225,16 @@ function PuzzleGlobeImpl() {
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.3; // slow, deliberate, luxurious
     controls.enableZoom = true;
-  }, []);
+
+    // First-load demo: spotlight Turkey for 3s so the highlight is visible.
+    setHighlight("TR");
+    introTimer.current = window.setTimeout(() => setHighlight(null), 3000);
+  }, [setHighlight]);
 
   useEffect(
     () => () => {
       if (resumeTimer.current !== null) window.clearTimeout(resumeTimer.current);
+      if (introTimer.current !== null) window.clearTimeout(introTimer.current);
     },
     [],
   );
@@ -248,9 +279,9 @@ function PuzzleGlobeImpl() {
           polygonsData={features}
           polygonAltitude={polygonAltitude}
           polygonCapColor={polygonCapColor}
-          polygonSideColor={SIDE_COLOR}
+          polygonSideColor={polygonSideColor}
           polygonStrokeColor={STROKE_COLOR}
-          polygonsTransitionDuration={800}
+          polygonsTransitionDuration={600}
           onPolygonHover={handleHover}
           onPolygonClick={handleClick}
           onGlobeReady={handleReady}

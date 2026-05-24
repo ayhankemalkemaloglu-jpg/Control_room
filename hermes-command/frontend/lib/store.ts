@@ -23,6 +23,8 @@ interface HermesStore {
   voiceTranscript: string;
   /** ISO_A2 -> timestamp (ms) of the most recent activation. */
   activeCountries: Map<string, number>;
+  /** Manually spotlighted country (ISO). Persists until changed/cleared. */
+  highlightedCountry: string | null;
 
   setConnection: (status: ConnectionStatus) => void;
   setActiveLayer: (layer: LayerId) => void;
@@ -31,6 +33,8 @@ interface HermesStore {
   /** Light up a country on the globe; auto-clears after ACTIVE_TTL_MS. */
   triggerCountry: (iso: string) => void;
   removeCountry: (iso: string) => void;
+  /** Spotlight a country (or clear with null). Does not auto-expire. */
+  setHighlight: (iso: string | null) => void;
 }
 
 export const useHermesStore = create<HermesStore>((set, get) => ({
@@ -40,6 +44,7 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
   briefings: [],
   voiceTranscript: "",
   activeCountries: new Map<string, number>(),
+  highlightedCountry: null,
 
   setConnection: (status) => set({ connection: status }),
   setActiveLayer: (layer) => set({ activeLayer: layer }),
@@ -75,4 +80,7 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
     next.delete(code);
     set({ activeCountries: next });
   },
+
+  setHighlight: (iso) =>
+    set({ highlightedCountry: iso ? iso.toUpperCase() : null }),
 }));
