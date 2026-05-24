@@ -73,7 +73,14 @@ webhookRouter.post(
 
     const diff = await processDiff(briefingId, parsed.positions, ts);
 
-    broadcast.briefingNew({ id: briefingId, timestamp: ts, ...parsed });
+    broadcast.briefingNew({
+      briefing_id: briefingId,
+      timestamp: ts,
+      hour_label: parsed.hourLabel,
+      overall: parsed.overall,
+      leader: parsed.leader,
+      open_positions_count: parsed.openPositionsCount,
+    });
     for (const trade of diff.openedTrades) broadcast.tradeOpen(trade);
     for (const trade of diff.closedTrades) broadcast.tradeClose(trade);
     if (diff.closedCount > 0) broadcast.statsUpdate(getStats("all"));
