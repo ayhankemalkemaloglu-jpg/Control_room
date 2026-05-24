@@ -61,11 +61,50 @@ export interface TradeEvent {
   note?: string;
 }
 
+/**
+ * A persisted trade row from the Hermes backend (open or historical).
+ * Mirrors the backend `Trade` shape — note the uppercase `side` and the
+ * snake_case fields, which match the DB / wire format verbatim.
+ */
+export interface Trade {
+  id: number;
+  symbol: string;
+  side: "LONG" | "SHORT";
+  entry_price: number;
+  strategy: string;
+  opened_at: string;
+  closed_at: string | null;
+  exit_price: number | null;
+  pnl_pct: number | null;
+  pnl_usd: number | null;
+  status: "OPEN" | "CLOSED" | "CLOSED_NO_EXIT";
+  hold_minutes: number | null;
+  realized_r: number | null;
+  /** Stable identity of the position across open/close events. */
+  position_hash: string;
+  price_precision_lost: number;
+}
+
+/** Aggregate trade statistics for the bottom-bar PnL band. */
+export interface Stats {
+  total_trades: number;
+  open_count: number;
+  closed_count: number;
+  win_rate: number;
+  win_loss_ratio: number;
+  avg_pnl_pct: number;
+  total_pnl_pct: number;
+  profit_factor: number;
+}
+
 /* ---- Realtime socket contract ---- */
 
 export interface ServerToClientEvents {
   briefing: (payload: HourlyBriefing) => void;
   trade: (payload: TradeEvent) => void;
+  "trade:open": (trade: Trade) => void;
+  "trade:close": (trade: Trade) => void;
+  "stats:update": (stats: Stats) => void;
 }
 
 export type ClientToServerEvents = Record<string, never>;

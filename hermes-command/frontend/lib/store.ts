@@ -4,6 +4,8 @@ import type {
   ConnectionStatus,
   HourlyBriefing,
   LayerId,
+  Stats,
+  Trade,
 } from "@/types/hermes";
 
 /** How many recent briefings the left-panel feed keeps in view. */
@@ -20,6 +22,12 @@ interface HermesStore {
   activeLayer: LayerId;
   latestBriefing: HourlyBriefing | null;
   briefings: HourlyBriefing[];
+  /** Currently open trades — newest first (right panel). */
+  openPositions: Trade[];
+  /** Closed trade history — newest first. */
+  closedTrades: Trade[];
+  /** Aggregate trade stats for the bottom bar; null until hydrated. */
+  stats: Stats | null;
   voiceTranscript: string;
   /** ISO_A2 -> timestamp (ms) of the most recent activation. */
   activeCountries: Map<string, number>;
@@ -29,6 +37,15 @@ interface HermesStore {
   setConnection: (status: ConnectionStatus) => void;
   setActiveLayer: (layer: LayerId) => void;
   pushBriefing: (briefing: HourlyBriefing) => void;
+  /** Prepend a freshly opened position (from `trade:open`). */
+  addOpenPosition: (trade: Trade) => void;
+  /** Move a position out of `openPositions` into `closedTrades` by hash. */
+  closePosition: (trade: Trade) => void;
+  setStats: (stats: Stats) => void;
+  /** Replace open positions wholesale (REST hydration). */
+  setOpenPositions: (positions: Trade[]) => void;
+  /** Replace closed trades wholesale (REST hydration). */
+  setClosedTrades: (trades: Trade[]) => void;
   setVoiceTranscript: (text: string) => void;
   /** Light up a country on the globe; auto-clears after ACTIVE_TTL_MS. */
   triggerCountry: (iso: string) => void;
@@ -42,6 +59,9 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
   activeLayer: "world",
   latestBriefing: null,
   briefings: [],
+  openPositions: [],
+  closedTrades: [],
+  stats: null,
   voiceTranscript: "",
   activeCountries: new Map<string, number>(),
   highlightedCountry: null,
@@ -53,6 +73,22 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
       latestBriefing: briefing,
       briefings: [briefing, ...state.briefings].slice(0, MAX_BRIEFINGS),
     })),
+
+  addOpenPosition: (trade) =>
+    set((state) => ({ openPositions: [trade, ...state.openPositions] })),
+
+  closePosition: (trade) =>
+    set((state) => ({
+      openPositions: state.openPositions.filter(
+        (p) => p.position_hash !== trade.position_hash,
+      ),
+      closedTrades: [trade, ...state.closedTrades],
+    })),
+
+  setStats: (stats) => set({ stats }),
+  setOpenPositions: (positions) => set({ openPositions: positions }),
+  setClosedTrades: (trades) => set({ closedTrades: trades }),
+
   setVoiceTranscript: (text) => set({ voiceTranscript: text }),
 
   triggerCountry: (iso) => {

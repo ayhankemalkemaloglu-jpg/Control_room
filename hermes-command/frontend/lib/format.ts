@@ -88,3 +88,11 @@ export function deltaColor(value: number): string {
 export function sideLabel(side: TradeSide): string {
   return side === "long" ? "LONG" : "SHORT";
 }
+
+/**
+ * Strip the quote suffix from a pair and uppercase it: `"btcusdt"` → `"BTC"`.
+ * Uppercase first so the (case-sensitive) replace matches lowercase input.
+ */
+export function shortSymbol(symbol: string): string {
+  return symbol.toUpperCase().replace("USDT", "");
+}

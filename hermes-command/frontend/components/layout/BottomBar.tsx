@@ -1,20 +1,10 @@
 "use client";
 
 import { useNow } from "@/hooks/useNow";
-import {
-  deltaColor,
-  formatClock,
-  formatSignedPct,
-  formatSignedUsd,
-} from "@/lib/format";
-import { MOCK_POSITIONS } from "@/lib/mock";
+import { deltaColor, formatClock, formatSignedPct } from "@/lib/format";
 import { useHermesStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { ConnectionStatus } from "@/types/hermes";
-
-const TOTAL_PNL = MOCK_POSITIONS.reduce((sum, p) => sum + p.pnl, 0);
-const TOTAL_SIZE = MOCK_POSITIONS.reduce((sum, p) => sum + p.size, 0);
-const TOTAL_PCT = (TOTAL_PNL / TOTAL_SIZE) * 100;
 
 const CLOCKS: { label: string; tz: string }[] = [
   { label: "NYC", tz: "America/New_York" },
@@ -39,21 +29,21 @@ function socketLed(connection: ConnectionStatus): LedState {
 }
 
 function PnlBand() {
+  const stats = useHermesStore((s) => s.stats);
+  const totalPct = stats?.total_pnl_pct ?? null;
+
   return (
     <div className="flex items-center gap-4">
       <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-        Gerçekleşmemiş PnL
+        Toplam PnL
       </span>
       <span
         className={cn(
           "font-mono text-base font-medium tabular",
-          deltaColor(TOTAL_PNL),
+          totalPct !== null ? deltaColor(totalPct) : "text-neutral",
         )}
       >
-        {formatSignedUsd(TOTAL_PNL)}
-      </span>
-      <span className={cn("font-mono text-xs tabular", deltaColor(TOTAL_PCT))}>
-        {formatSignedPct(TOTAL_PCT)}
+        {totalPct !== null ? formatSignedPct(totalPct) : "—"}
       </span>
     </div>
   );

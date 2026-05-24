@@ -7,11 +7,11 @@ import {
   formatPrice,
   formatSignedPct,
   formatSignedUsd,
-  sideLabel,
+  shortSymbol,
 } from "@/lib/format";
-import { MOCK_POSITIONS } from "@/lib/mock";
+import { useHermesStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import type { Position } from "@/types/hermes";
+import type { Trade } from "@/types/hermes";
 
 function Stat({
   label,
@@ -34,14 +34,15 @@ function Stat({
   );
 }
 
-function PositionRow({ position }: { position: Position }) {
-  const long = position.side === "long";
+function PositionRow({ position }: { position: Trade }) {
+  const long = position.side === "LONG";
+  const { pnl_pct: pnlPct, pnl_usd: pnlUsd } = position;
   return (
     <article className="rounded-[12px] border border-border bg-secondary/30 p-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="font-mono text-sm text-foreground tabular">
-            {position.symbol}
+            {shortSymbol(position.symbol)}
           </span>
           <span
             className={cn(
@@ -51,25 +52,25 @@ function PositionRow({ position }: { position: Position }) {
                 : "border-bearish/30 text-bearish",
             )}
           >
-            {sideLabel(position.side)} {position.leverage}×
+            {position.side}
           </span>
         </div>
         <span
           className={cn(
             "font-mono text-sm tabular",
-            deltaColor(position.pnl),
+            pnlUsd !== null ? deltaColor(pnlUsd) : "text-neutral",
           )}
         >
-          {formatSignedUsd(position.pnl)}
+          {pnlUsd !== null ? formatSignedUsd(pnlUsd) : "—"}
         </span>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2">
-        <Stat label="Giriş" value={formatPrice(position.entryPrice)} />
-        <Stat label="Son" value={formatPrice(position.markPrice)} />
+        <Stat label="Giriş" value={formatPrice(position.entry_price)} />
+        <Stat label="Strateji" value={position.strategy} />
         <Stat
           label="PnL %"
-          value={formatSignedPct(position.pnlPct)}
-          valueClass={deltaColor(position.pnlPct)}
+          value={pnlPct !== null ? formatSignedPct(pnlPct) : "—"}
+          valueClass={pnlPct !== null ? deltaColor(pnlPct) : undefined}
         />
       </div>
     </article>
@@ -77,17 +78,25 @@ function PositionRow({ position }: { position: Position }) {
 }
 
 export function PositionsPanel() {
+  const openPositions = useHermesStore((s) => s.openPositions);
+
   return (
     <Panel
       title="Açık Pozisyonlar"
-      eyebrow={`${MOCK_POSITIONS.length} pozisyon`}
+      eyebrow={`${openPositions.length} pozisyon`}
       className="h-full"
     >
       <ScrollArea className="h-full">
         <div className="flex flex-col gap-2 p-3">
-          {MOCK_POSITIONS.map((position) => (
-            <PositionRow key={position.id} position={position} />
-          ))}
+          {openPositions.length === 0 ? (
+            <p className="px-1 py-8 text-center text-xs text-muted-foreground">
+              Açık pozisyon yok
+            </p>
+          ) : (
+            openPositions.map((position) => (
+              <PositionRow key={position.id} position={position} />
+            ))
+          )}
         </div>
       </ScrollArea>
     </Panel>

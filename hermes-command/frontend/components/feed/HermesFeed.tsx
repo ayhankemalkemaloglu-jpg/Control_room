@@ -6,23 +6,11 @@ import { Panel } from "@/components/common/Panel";
 import { SentimentPill } from "@/components/common/SentimentPill";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { deltaColor, formatHM, formatSignedPct } from "@/lib/format";
-import { MOCK_FEED } from "@/lib/mock";
 import { useHermesStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import type { HermesMessage, HourlyBriefing } from "@/types/hermes";
+import type { HourlyBriefing } from "@/types/hermes";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
-
-const LEVEL_META: Record<
-  HermesMessage["level"],
-  { label: string; dot: string }
-> = {
-  signal: { label: "Sinyal", dot: "bg-gold" },
-  alert: { label: "Uyarı", dot: "bg-bearish" },
-  success: { label: "Başarılı", dot: "bg-bullish" },
-  info: { label: "Bilgi", dot: "bg-muted-foreground" },
-  warning: { label: "Dikkat", dot: "bg-gold" },
-};
 
 function BriefingCard({ briefing }: { briefing: HourlyBriefing }) {
   return (
@@ -69,36 +57,6 @@ function BriefingCard({ briefing }: { briefing: HourlyBriefing }) {
   );
 }
 
-function FeedMessage({ message }: { message: HermesMessage }) {
-  const meta = LEVEL_META[message.level];
-  return (
-    <article className="border-b border-border px-1 py-3 last:border-b-0">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className={cn("size-1.5 rounded-full", meta.dot)} />
-          <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            {meta.label}
-          </span>
-          {message.symbol && (
-            <span className="font-mono text-[10px] text-muted-foreground tabular">
-              {message.symbol}
-            </span>
-          )}
-        </div>
-        <span className="font-mono text-[10px] text-muted-foreground tabular">
-          {formatHM(message.timestamp)}
-        </span>
-      </div>
-      <h3 className="mt-1.5 text-sm font-medium text-foreground">
-        {message.title}
-      </h3>
-      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-        {message.body}
-      </p>
-    </article>
-  );
-}
-
 export function HermesFeed() {
   const briefings = useHermesStore((s) => s.briefings);
 
@@ -106,17 +64,17 @@ export function HermesFeed() {
     <Panel title="Hermes Feed" eyebrow="Canlı akış" className="h-full">
       <ScrollArea className="h-full">
         <div className="flex flex-col gap-2 p-3">
-          <AnimatePresence initial={false}>
-            {briefings.map((briefing) => (
-              <BriefingCard key={briefing.id} briefing={briefing} />
-            ))}
-          </AnimatePresence>
-          {briefings.length > 0 && <div className="my-1 h-px bg-border" />}
-          <div className="flex flex-col">
-            {MOCK_FEED.map((message) => (
-              <FeedMessage key={message.id} message={message} />
-            ))}
-          </div>
+          {briefings.length === 0 ? (
+            <p className="px-1 py-8 text-center text-xs text-muted-foreground">
+              Henüz briefing yok
+            </p>
+          ) : (
+            <AnimatePresence initial={false}>
+              {briefings.map((briefing) => (
+                <BriefingCard key={briefing.id} briefing={briefing} />
+              ))}
+            </AnimatePresence>
+          )}
         </div>
       </ScrollArea>
     </Panel>
