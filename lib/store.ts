@@ -3,6 +3,7 @@ import { create } from "zustand";
 import type {
   Briefing,
   ConnectionStatus,
+  Health,
   LayerId,
   Stats,
   Trade,
@@ -28,6 +29,8 @@ interface HermesStore {
   closedTrades: Trade[];
   /** Aggregate trade stats for the bottom bar; null until hydrated. */
   stats: Stats | null;
+  /** Latest /health snapshot for the status LEDs; null = backend unreachable. */
+  health: Health | null;
   voiceTranscript: string;
   /** ISO_A2 -> timestamp (ms) of the most recent activation. */
   activeCountries: Map<string, number>;
@@ -42,6 +45,8 @@ interface HermesStore {
   /** Move a position out of `openPositions` into `closedTrades` by hash. */
   closePosition: (trade: Trade) => void;
   setStats: (stats: Stats) => void;
+  /** Update the /health snapshot (null when the probe fails). */
+  setHealth: (health: Health | null) => void;
   /** Replace open positions wholesale (REST hydration). */
   setOpenPositions: (positions: Trade[]) => void;
   /** Replace closed trades wholesale (REST hydration). */
@@ -62,6 +67,7 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
   openPositions: [],
   closedTrades: [],
   stats: null,
+  health: null,
   voiceTranscript: "",
   activeCountries: new Map<string, number>(),
   highlightedCountry: null,
@@ -86,6 +92,7 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
     })),
 
   setStats: (stats) => set({ stats }),
+  setHealth: (health) => set({ health }),
   setOpenPositions: (positions) => set({ openPositions: positions }),
   setClosedTrades: (trades) => set({ closedTrades: trades }),
 

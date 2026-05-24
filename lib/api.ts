@@ -1,4 +1,4 @@
-import type { Briefing, Stats, Trade } from "@/types/hermes";
+import type { Briefing, Health, Stats, Trade } from "@/types/hermes";
 
 /**
  * REST hydration client for the Hermes backend. The socket stream
@@ -64,4 +64,18 @@ export async function fetchStats(): Promise<Stats | null> {
 
 export async function fetchBriefings(): Promise<Briefing[]> {
   return asArray<Briefing>(await hermesFetch("/briefings?limit=6"));
+}
+
+/**
+ * Liveness probe for the bottom-bar status LEDs. Unlike the other fetches this
+ * never throws — a failure means "backend unreachable", which the caller
+ * renders as a down LED, so we resolve to null instead of propagating.
+ */
+export async function fetchHealth(): Promise<Health | null> {
+  try {
+    const json = await hermesFetch("/health");
+    return json && typeof json === "object" ? (json as Health) : null;
+  } catch {
+    return null;
+  }
 }

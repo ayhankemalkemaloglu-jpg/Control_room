@@ -28,6 +28,21 @@ function socketLed(connection: ConnectionStatus): LedState {
   return "down";
 }
 
+/** Age-based LED: fresh → ok, getting old → warn, stale → down, unknown → idle. */
+function freshnessLed(
+  lastIso: string | null,
+  now: Date | null,
+  okMinutes: number,
+  warnMinutes: number,
+): LedState {
+  if (!lastIso || !now) return "idle";
+  const ageMin = (now.getTime() - new Date(lastIso).getTime()) / 60_000;
+  if (Number.isNaN(ageMin)) return "idle";
+  if (ageMin <= okMinutes) return "ok";
+  if (ageMin <= warnMinutes) return "warn";
+  return "down";
+}
+
 function PnlBand() {
   const stats = useHermesStore((s) => s.stats);
   const totalPct = stats?.total_pnl_pct ?? null;
@@ -51,11 +66,35 @@ function PnlBand() {
 
 function SystemHealth() {
   const connection = useHermesStore((s) => s.connection);
+  const health = useHermesStore((s) => s.health);
+  const latestBriefing = useHermesStore((s) => s.latestBriefing);
+  // Re-evaluate freshness on a slow tick so LEDs age even with no new events.
+  const now = useNow(15_000);
+
+  // Most recent briefing time we know of: live socket beats the polled /health.
+  const lastBriefingIso =
+    latestBriefing?.timestamp ?? health?.last_briefing_at ?? null;
+
+  // Veri (data/DB): backend reachable + DB healthy.
+  const veriLed: LedState =
+    health === null ? "down" : health.db_ok ? "ok" : "warn";
+
+  // Telegram: did this hour's briefing get delivered (hourly cadence).
+  const telegramLed = freshnessLed(lastBriefingIso, now, 75, 150);
+
+  // Motor (Hermes engine producing briefings) over a looser window.
+  const motorLed: LedState =
+    health === null
+      ? "down"
+      : !lastBriefingIso
+        ? "warn"
+        : freshnessLed(lastBriefingIso, now, 120, 240);
+
   const leds: { label: string; state: LedState }[] = [
     { label: "Socket", state: socketLed(connection) },
-    { label: "Telegram", state: "idle" },
-    { label: "Veri", state: "ok" },
-    { label: "Motor", state: "ok" },
+    { label: "Telegram", state: telegramLed },
+    { label: "Veri", state: veriLed },
+    { label: "Motor", state: motorLed },
   ];
 
   return (

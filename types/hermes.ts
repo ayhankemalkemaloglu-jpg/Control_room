@@ -106,6 +106,17 @@ export interface Stats {
   by_strategy: GroupStat[];
 }
 
+/* ---- Health (backend routes/health.ts) ---- */
+
+/** Liveness snapshot from `GET /health` (no auth required). */
+export interface Health {
+  ok: boolean;
+  uptime: number;
+  db_ok: boolean;
+  last_briefing_at: string | null;
+  version: string;
+}
+
 /* ---- Realtime socket contract (backend socket/server.ts broadcasts) ---- */
 
 /** Payload of `briefing:new` — lighter than a REST briefing row. */

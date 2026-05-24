@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import {
   fetchBriefings,
   fetchClosedTrades,
+  fetchHealth,
   fetchOpenPositions,
   fetchStats,
 } from "@/lib/api";
@@ -53,6 +54,7 @@ export function useHermesSocket(): void {
   const addOpenPosition = useHermesStore((s) => s.addOpenPosition);
   const closePosition = useHermesStore((s) => s.closePosition);
   const setStats = useHermesStore((s) => s.setStats);
+  const setHealth = useHermesStore((s) => s.setHealth);
   const setOpenPositions = useHermesStore((s) => s.setOpenPositions);
   const setClosedTrades = useHermesStore((s) => s.setClosedTrades);
 
@@ -130,4 +132,22 @@ export function useHermesSocket(): void {
       cancelled = true;
     };
   }, [setOpenPositions, setClosedTrades, setStats, pushBriefing]);
+
+  // --- Health polling (drives the bottom-bar status LEDs) ---
+  useEffect(() => {
+    let cancelled = false;
+
+    const poll = async () => {
+      const health = await fetchHealth();
+      if (!cancelled) setHealth(health);
+    };
+
+    void poll();
+    const id = window.setInterval(() => void poll(), 20_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [setHealth]);
 }
