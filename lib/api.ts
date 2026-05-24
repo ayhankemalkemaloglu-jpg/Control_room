@@ -1,0 +1,67 @@
+import type { Briefing, Stats, Trade } from "@/types/hermes";
+
+/**
+ * REST hydration client for the Hermes backend. The socket stream
+ * (see `hooks/useHermesSocket`) keeps state live; these one-shot fetches
+ * backfill history on mount so the panels aren't empty before the first
+ * realtime event arrives.
+ */
+
+const API_URL =
+  process.env.NEXT_PUBLIC_HERMES_API_URL ??
+  process.env.NEXT_PUBLIC_HERMES_WS_URL ??
+  "http://localhost:4000";
+
+const AUTH_TOKEN = process.env.NEXT_PUBLIC_HERMES_TOKEN ?? "";
+
+async function hermesFetch(path: string): Promise<unknown> {
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: { Authorization: `Bearer ${AUTH_TOKEN}` },
+  });
+  if (!res.ok) {
+    throw new Error(`Hermes API ${path} → ${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
+/**
+ * Tolerate both a bare array and the common wrappers
+ * (`{ trades: [] }`, `{ data: [] }`, …) so we don't break if the backend
+ * envelope shape differs from a plain list.
+ */
+function asArray<T>(json: unknown): T[] {
+  if (Array.isArray(json)) return json as T[];
+  if (json && typeof json === "object") {
+    const obj = json as Record<string, unknown>;
+    for (const key of ["trades", "briefings", "data", "items", "results"]) {
+      if (Array.isArray(obj[key])) return obj[key] as T[];
+    }
+  }
+  return [];
+}
+
+/** Unwrap stats from a bare object or a `{ stats }` / `{ data }` envelope. */
+function asStats(json: unknown): Stats | null {
+  if (!json || typeof json !== "object") return null;
+  const obj = json as Record<string, unknown>;
+  const candidate = obj.stats ?? obj.data ?? obj;
+  return candidate && typeof candidate === "object"
+    ? (candidate as Stats)
+    : null;
+}
+
+export async function fetchOpenPositions(): Promise<Trade[]> {
+  return asArray<Trade>(await hermesFetch("/trades?status=OPEN"));
+}
+
+export async function fetchClosedTrades(): Promise<Trade[]> {
+  return asArray<Trade>(await hermesFetch("/trades?status=CLOSED&limit=50"));
+}
+
+export async function fetchStats(): Promise<Stats | null> {
+  return asStats(await hermesFetch("/trades/stats?window=24h"));
+}
+
+export async function fetchBriefings(): Promise<Briefing[]> {
+  return asArray<Briefing>(await hermesFetch("/briefings?limit=6"));
+}

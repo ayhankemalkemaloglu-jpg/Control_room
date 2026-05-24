@@ -1,0 +1,167 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+  Hermes Command Center — design tokens.
+  Dark-only. Desktop-only. No gradients anywhere.
+  Restraint of Patek Philippe + precision of Linear.app.
+*/
+
+:root {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --background: #0a0a0c; /* app canvas */
+  --panel: #111114; /* glass panel base, composited with alpha */
+  --foreground: #e9e9ec; /* primary text */
+  --muted: #16161a; /* subtle fills */
+  --muted-foreground: #8a8a93; /* secondary text */
+
+  /* shadcn surface tokens */
+  --card: #111114;
+  --card-foreground: #e9e9ec;
+  --popover: #111114;
+  --popover-foreground: #e9e9ec;
+  --secondary: #1a1a1f;
+  --secondary-foreground: #e9e9ec;
+  --accent: #1a1a1f;
+  --accent-foreground: #e9e9ec;
+
+  /* Champagne gold — the single accent. Solid, never a gradient. */
+  --gold: #c9a961;
+  --gold-foreground: #0a0a0c;
+  --primary: #c9a961;
+  --primary-foreground: #0a0a0c;
+
+  /* Sentiment / data colors — refined, never neon */
+  --bullish: #5fa97f;
+  --bearish: #cf6b62;
+  --neutral: #8a8a93;
+  --destructive: #cf6b62;
+  --destructive-foreground: #0a0a0c;
+
+  /* Lines */
+  --border: rgba(255, 255, 255, 0.06);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: rgba(201, 169, 97, 0.35);
+
+  --radius: 12px;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-panel: var(--panel);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-bullish: var(--bullish);
+  --color-bearish: var(--bearish);
+  --color-neutral: var(--neutral);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-fraunces);
+  --font-mono: var(--font-jetbrains);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+
+  html {
+    background-color: var(--background);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  code,
+  kbd,
+  .font-mono {
+    font-feature-settings: "tnum", "zero", "cv01";
+  }
+}
+
+@layer utilities {
+  /* Glass panel surface — flat tint + blur, no gradient. */
+  .glass {
+    background-color: color-mix(in srgb, var(--panel) 72%, transparent);
+    backdrop-filter: blur(20px) saturate(120%);
+    -webkit-backdrop-filter: blur(20px) saturate(120%);
+  }
+
+  /* LIVE indicator — slow champagne-gold pulse. */
+  .live-dot {
+    animation: hermes-pulse 2400ms ease-in-out infinite;
+  }
+
+  /* Subtle glow ring for the globe — a soft shadow, not a gradient. */
+  .globe-glow {
+    box-shadow:
+      0 0 160px 8px rgba(201, 169, 97, 0.05),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@keyframes hermes-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(0.78);
+  }
+}
+
+/* Refined, near-invisible scrollbars for native scroll regions. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
