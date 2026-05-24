@@ -5,6 +5,9 @@ import type {
   ConnectionStatus,
   Health,
   LayerId,
+  LivePnlPosition,
+  PnlUpdatePayload,
+  PriceUpdatePayload,
   Stats,
   Trade,
 } from "@/types/hermes";
@@ -31,6 +34,12 @@ interface HermesStore {
   stats: Stats | null;
   /** Latest /health snapshot for the status LEDs; null = backend unreachable. */
   health: Health | null;
+  /** Live unrealized P&L per open trade id (from pnl:update). */
+  livePnl: Record<number, LivePnlPosition>;
+  /** Net unrealized P&L % across open positions; null until the first tick. */
+  liveTotalPnlPct: number | null;
+  /** Latest spot price per symbol (from price:update). */
+  livePrices: Record<string, number>;
   voiceTranscript: string;
   /** ISO_A2 -> timestamp (ms) of the most recent activation. */
   activeCountries: Map<string, number>;
@@ -47,6 +56,10 @@ interface HermesStore {
   setStats: (stats: Stats) => void;
   /** Update the /health snapshot (null when the probe fails). */
   setHealth: (health: Health | null) => void;
+  /** Replace live unrealized P&L wholesale from a pnl:update tick. */
+  applyPnlUpdate: (payload: PnlUpdatePayload) => void;
+  /** Record a symbol's latest spot price from a price:update tick. */
+  applyPriceUpdate: (payload: PriceUpdatePayload) => void;
   /** Replace open positions wholesale (REST hydration). */
   setOpenPositions: (positions: Trade[]) => void;
   /** Replace closed trades wholesale (REST hydration). */
@@ -68,6 +81,9 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
   closedTrades: [],
   stats: null,
   health: null,
+  livePnl: {},
+  liveTotalPnlPct: null,
+  livePrices: {},
   voiceTranscript: "",
   activeCountries: new Map<string, number>(),
   highlightedCountry: null,
@@ -93,6 +109,19 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
 
   setStats: (stats) => set({ stats }),
   setHealth: (health) => set({ health }),
+
+  applyPnlUpdate: (payload) =>
+    set(() => {
+      const byId: Record<number, LivePnlPosition> = {};
+      for (const p of payload.positions) byId[p.trade_id] = p;
+      return { livePnl: byId, liveTotalPnlPct: payload.total_pnl_pct };
+    }),
+
+  applyPriceUpdate: (payload) =>
+    set((state) => ({
+      livePrices: { ...state.livePrices, [payload.symbol]: payload.price },
+    })),
+
   setOpenPositions: (positions) => set({ openPositions: positions }),
   setClosedTrades: (trades) => set({ closedTrades: trades }),
 

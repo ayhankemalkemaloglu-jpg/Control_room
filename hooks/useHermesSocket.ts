@@ -14,6 +14,8 @@ import { useHermesStore } from "@/lib/store";
 import type {
   Briefing,
   BriefingNewPayload,
+  PnlUpdatePayload,
+  PriceUpdatePayload,
   Trade,
 } from "@/types/hermes";
 
@@ -55,6 +57,8 @@ export function useHermesSocket(): void {
   const closePosition = useHermesStore((s) => s.closePosition);
   const setStats = useHermesStore((s) => s.setStats);
   const setHealth = useHermesStore((s) => s.setHealth);
+  const applyPnlUpdate = useHermesStore((s) => s.applyPnlUpdate);
+  const applyPriceUpdate = useHermesStore((s) => s.applyPriceUpdate);
   const setOpenPositions = useHermesStore((s) => s.setOpenPositions);
   const setClosedTrades = useHermesStore((s) => s.setClosedTrades);
 
@@ -74,6 +78,8 @@ export function useHermesSocket(): void {
       const fresh = await fetchStats();
       if (fresh) setStats(fresh);
     };
+    const onPnl = (payload: PnlUpdatePayload) => applyPnlUpdate(payload);
+    const onPrice = (payload: PriceUpdatePayload) => applyPriceUpdate(payload);
 
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
@@ -82,6 +88,8 @@ export function useHermesSocket(): void {
     socket.on("trade:open", onTradeOpen);
     socket.on("trade:close", onTradeClose);
     socket.on("stats:update", onStatsPing);
+    socket.on("pnl:update", onPnl);
+    socket.on("price:update", onPrice);
 
     setConnection("connecting");
     socket.connect();
@@ -94,6 +102,8 @@ export function useHermesSocket(): void {
       socket.off("trade:open", onTradeOpen);
       socket.off("trade:close", onTradeClose);
       socket.off("stats:update", onStatsPing);
+      socket.off("pnl:update", onPnl);
+      socket.off("price:update", onPrice);
       socket.disconnect();
     };
   }, [
@@ -102,6 +112,8 @@ export function useHermesSocket(): void {
     addOpenPosition,
     closePosition,
     setStats,
+    applyPnlUpdate,
+    applyPriceUpdate,
   ]);
 
   // --- REST hydration (runs once on mount) ---

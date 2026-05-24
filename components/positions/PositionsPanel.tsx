@@ -6,12 +6,11 @@ import {
   deltaColor,
   formatPrice,
   formatSignedPct,
-  formatSignedUsd,
   shortSymbol,
 } from "@/lib/format";
 import { useHermesStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import type { Trade } from "@/types/hermes";
+import type { LivePnlPosition, Trade } from "@/types/hermes";
 
 
 function formatStrategy(strategy: string | null | undefined): string {
@@ -43,9 +42,19 @@ function Stat({
   );
 }
 
-function PositionRow({ position }: { position: Trade }) {
+function PositionRow({
+  position,
+  live,
+}: {
+  position: Trade;
+  live?: LivePnlPosition;
+}) {
   const long = position.side === "LONG";
-  const { pnl_pct: pnlPct, pnl_usd: pnlUsd } = position;
+  // Prefer the live unrealized P&L for open positions; fall back to the stored
+  // (close-time) value so closed/unpriced rows still render something.
+  const pnlPct = live?.pnl_pct ?? position.pnl_pct;
+  const currentPrice = live?.current_price ?? null;
+
   return (
     <article className="rounded-[12px] border border-border bg-secondary/30 p-3">
       <div className="flex items-center justify-between">
@@ -67,19 +76,18 @@ function PositionRow({ position }: { position: Trade }) {
         <span
           className={cn(
             "font-mono text-sm tabular",
-            pnlUsd !== null ? deltaColor(pnlUsd) : "text-neutral",
+            pnlPct !== null ? deltaColor(pnlPct) : "text-neutral",
           )}
         >
-          {pnlUsd !== null ? formatSignedUsd(pnlUsd) : "—"}
+          {pnlPct !== null ? formatSignedPct(pnlPct) : "—"}
         </span>
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2">
         <Stat label="Giriş" value={formatPrice(position.entry_price)} />
         <Stat label="Strateji" value={formatStrategy(position.strategy)} />
         <Stat
-          label="PnL %"
-          value={pnlPct !== null ? formatSignedPct(pnlPct) : "—"}
-          valueClass={pnlPct !== null ? deltaColor(pnlPct) : undefined}
+          label="Güncel"
+          value={currentPrice !== null ? formatPrice(currentPrice) : "—"}
         />
       </div>
     </article>
@@ -88,11 +96,25 @@ function PositionRow({ position }: { position: Trade }) {
 
 export function PositionsPanel() {
   const openPositions = useHermesStore((s) => s.openPositions);
+  const livePnl = useHermesStore((s) => s.livePnl);
+  const liveTotal = useHermesStore((s) => s.liveTotalPnlPct);
 
   return (
     <Panel
       title="Açık Pozisyonlar"
       eyebrow={`${openPositions.length} pozisyon`}
+      headerRight={
+        liveTotal !== null ? (
+          <span
+            className={cn(
+              "font-mono text-xs tabular",
+              deltaColor(liveTotal),
+            )}
+          >
+            {formatSignedPct(liveTotal)}
+          </span>
+        ) : undefined
+      }
       className="h-full"
     >
       <ScrollArea className="h-full">
@@ -103,7 +125,11 @@ export function PositionsPanel() {
             </p>
           ) : (
             openPositions.map((position) => (
-              <PositionRow key={position.id} position={position} />
+              <PositionRow
+                key={position.id}
+                position={position}
+                live={livePnl[position.id]}
+              />
             ))
           )}
         </div>

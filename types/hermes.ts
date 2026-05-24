@@ -137,11 +137,40 @@ export interface StatsUpdatePayload {
   at: string;
 }
 
+/* ---- Live price / unrealized P&L (backend services/livePrices.ts) ---- */
+
+/** One open position's live unrealized P&L, recomputed each poll tick. */
+export interface LivePnlPosition {
+  trade_id: number;
+  symbol: string;
+  side: "LONG" | "SHORT";
+  entry_price: number;
+  current_price: number;
+  pnl_pct: number;
+  strategy: string | null;
+}
+
+/** Payload of `price:update` — one symbol's latest spot price. */
+export interface PriceUpdatePayload {
+  symbol: string;
+  price: number;
+  at: string;
+}
+
+/** Payload of `pnl:update` — live unrealized P&L for every open position. */
+export interface PnlUpdatePayload {
+  at: string;
+  positions: LivePnlPosition[];
+  total_pnl_pct: number;
+}
+
 export interface ServerToClientEvents {
   "briefing:new": (payload: BriefingNewPayload) => void;
   "trade:open": (trade: Trade) => void;
   "trade:close": (trade: Trade) => void;
   "stats:update": (payload: StatsUpdatePayload) => void;
+  "price:update": (payload: PriceUpdatePayload) => void;
+  "pnl:update": (payload: PnlUpdatePayload) => void;
 }
 
 export type ClientToServerEvents = Record<string, never>;
