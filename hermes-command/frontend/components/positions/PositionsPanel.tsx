@@ -13,6 +13,14 @@ import { useHermesStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { Trade } from "@/types/hermes";
 
+function formatStrategy(strategy: string | null | undefined): string {
+  if (!strategy) return "—";
+  return strategy!
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 function Stat({
   label,
   value,
@@ -66,7 +74,7 @@ function PositionRow({ position }: { position: Trade }) {
       </div>
       <div className="mt-3 grid grid-cols-3 gap-2">
         <Stat label="Giriş" value={formatPrice(position.entry_price)} />
-        <Stat label="Strateji" value={position.strategy ?? "—"} />
+        <Stat label="Strateji" value={formatStrategy(position.strategy)} />
         <Stat
           label="PnL %"
           value={pnlPct !== null ? formatSignedPct(pnlPct) : "—"}
