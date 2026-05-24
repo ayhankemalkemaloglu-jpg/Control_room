@@ -1,6 +1,7 @@
 "use client";
 
 import { VoiceButton } from "@/components/voice/VoiceButton";
+import { deltaColor, formatSignedPct } from "@/lib/format";
 import { useHermesStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { ConnectionStatus } from "@/types/hermes";
@@ -13,6 +14,55 @@ const CONNECTION_META: Record<
   connecting: { label: "Bağlanıyor", dot: "bg-gold", pulse: true },
   disconnected: { label: "Bağlantı yok", dot: "bg-bearish", pulse: false },
 };
+
+function Metric({
+  label,
+  value,
+  valueClass,
+}: {
+  label: string;
+  value: string;
+  valueClass?: string;
+}) {
+  return (
+    <div className="flex flex-col items-start gap-0.5">
+      <span className="text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+        {label}
+      </span>
+      <span className={cn("font-mono text-xs text-foreground tabular", valueClass)}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function TopMetrics() {
+  const liveTotal = useHermesStore((s) => s.liveTotalPnlPct);
+  const stats = useHermesStore((s) => s.stats);
+
+  return (
+    <div className="flex items-center gap-6">
+      <Metric
+        label="Net (canlı)"
+        value={liveTotal !== null ? formatSignedPct(liveTotal) : "—"}
+        valueClass={liveTotal !== null ? deltaColor(liveTotal) : undefined}
+      />
+      <Metric
+        label="24s Ort."
+        value={stats ? formatSignedPct(stats.avg_pnl_pct) : "—"}
+        valueClass={stats ? deltaColor(stats.avg_pnl_pct) : undefined}
+      />
+      <Metric
+        label="Başarı"
+        value={stats ? `${Math.round(stats.win_rate * 100)}%` : "—"}
+      />
+      <Metric
+        label="Açık / Kapalı"
+        value={stats ? `${stats.open_count} / ${stats.closed_count}` : "—"}
+      />
+    </div>
+  );
+}
 
 export function TopBar() {
   const connection = useHermesStore((s) => s.connection);
@@ -28,6 +78,8 @@ export function TopBar() {
           Command Center
         </span>
       </div>
+
+      <TopMetrics />
 
       <div className="flex items-center gap-5">
         <div className="flex items-center gap-2">
