@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import { sortNewsNewestFirst } from "@/lib/news";
 import type {
   Briefing,
   ChartTarget,
@@ -145,7 +146,7 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
   openChart: (target) => set({ chartTarget: target }),
   closeChart: () => set({ chartTarget: null }),
   setCountryEvents: (events) => set({ countryEvents: events }),
-  setNews: (news) => set({ news }),
+  setNews: (news) => set({ news: sortNewsNewestFirst(news) }),
 
   setOpenPositions: (positions) => set({ openPositions: positions }),
   setClosedTrades: (trades) => set({ closedTrades: trades }),
