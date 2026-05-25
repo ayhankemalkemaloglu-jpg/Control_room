@@ -213,6 +213,21 @@ export interface NewsItem {
   thumbnail: string | null;
 }
 
+/* ---- Türkiye markets (backend routes/markets.ts → GET /markets/turkey) ---- */
+
+export interface Quote {
+  symbol: string;
+  price: number;
+  changePct: number | null;
+}
+
+export interface TurkeyMarkets {
+  bist100: Quote | null;
+  usdtry: Quote | null;
+  gold_gram_try: Quote | null;
+  at: string;
+}
+
 /** A country centroid for placing news on the globe. */
 export interface CountryGeo {
   iso: string;

@@ -7,6 +7,7 @@ import type {
   Stats,
   StatsWindow,
   Trade,
+  TurkeyMarkets,
 } from "@/types/hermes";
 
 /**
@@ -75,6 +76,15 @@ export async function fetchNews(category = "crypto", count = 15): Promise<NewsIt
   return asArray<NewsItem>(
     await hermesFetch(`/news?category=${encodeURIComponent(category)}&count=${count}`),
   );
+}
+
+export async function fetchTurkeyMarkets(): Promise<TurkeyMarkets | null> {
+  try {
+    const json = await hermesFetch("/markets/turkey");
+    return json && typeof json === "object" ? (json as TurkeyMarkets) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchBriefings(): Promise<Briefing[]> {

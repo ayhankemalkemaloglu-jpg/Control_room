@@ -8,6 +8,7 @@ import { BottomBar } from "@/components/layout/BottomBar";
 import { TopBar } from "@/components/layout/TopBar";
 import { NewsLayer } from "@/components/news/NewsLayer";
 import { PositionsPanel } from "@/components/positions/PositionsPanel";
+import { TurkeyLayer } from "@/components/turkey/TurkeyLayer";
 import { useGlobeNews } from "@/hooks/useGlobeNews";
 import { useHermesSocket } from "@/hooks/useHermesSocket";
 import { useHermesStore } from "@/lib/store";
@@ -28,7 +29,13 @@ export function Dashboard() {
           <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2">
             <LayerSwitcher />
           </div>
-          {activeLayer === "news" ? <NewsLayer /> : <PuzzleGlobe />}
+          {activeLayer === "news" ? (
+            <NewsLayer />
+          ) : activeLayer === "turkey" ? (
+            <TurkeyLayer />
+          ) : (
+            <PuzzleGlobe />
+          )}
         </section>
 
         <PositionsPanel />
