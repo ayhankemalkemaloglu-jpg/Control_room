@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { Panel } from "@/components/common/Panel";
@@ -7,7 +8,8 @@ import { SentimentPill } from "@/components/common/SentimentPill";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatHM, shortSymbol } from "@/lib/format";
 import { useHermesStore } from "@/lib/store";
-import type { Briefing, Sentiment, Trend } from "@/types/hermes";
+import { cn } from "@/lib/utils";
+import type { Briefing, NewsItem, Sentiment, Trend } from "@/types/hermes";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -123,23 +125,101 @@ function BriefingCard({ briefing }: { briefing: Briefing }) {
   );
 }
 
+function NewsCard({ item }: { item: NewsItem }) {
+  return (
+    <a
+      href={item.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex gap-2 rounded-[10px] border border-border bg-secondary/30 p-2.5 transition-colors hover:border-gold/30 hover:bg-secondary/50"
+    >
+      {item.thumbnail && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={item.thumbnail}
+          alt=""
+          className="size-12 shrink-0 rounded object-cover"
+        />
+      )}
+      <div className="min-w-0">
+        <p className="line-clamp-2 text-xs text-foreground">{item.title}</p>
+        <div className="mt-1 flex items-center gap-1.5 text-[9px] text-muted-foreground">
+          <span className="truncate">{item.source}</span>
+          {item.age && <span>· {item.age}</span>}
+        </div>
+      </div>
+    </a>
+  );
+}
+
+type FeedTab = "brifing" | "haber";
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider transition-colors",
+        active
+          ? "bg-secondary text-foreground"
+          : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function HermesFeed() {
   const briefings = useHermesStore((s) => s.briefings);
+  const news = useHermesStore((s) => s.news);
+  const [tab, setTab] = useState<FeedTab>("brifing");
 
   return (
-    <Panel title="Hermes Feed" eyebrow="Canlı akış" className="h-full">
+    <Panel
+      title="Hermes Feed"
+      eyebrow="Canlı akış"
+      headerRight={
+        <div className="flex items-center gap-1">
+          <TabButton active={tab === "brifing"} onClick={() => setTab("brifing")}>
+            Brifing
+          </TabButton>
+          <TabButton active={tab === "haber"} onClick={() => setTab("haber")}>
+            Haber
+          </TabButton>
+        </div>
+      }
+      className="h-full"
+    >
       <ScrollArea className="h-full">
         <div className="flex flex-col gap-2 p-3">
-          {briefings.length === 0 ? (
+          {tab === "brifing" ? (
+            briefings.length === 0 ? (
+              <p className="px-1 py-8 text-center text-xs text-muted-foreground">
+                Henüz briefing yok
+              </p>
+            ) : (
+              <AnimatePresence initial={false}>
+                {briefings.map((briefing) => (
+                  <BriefingCard key={briefing.id} briefing={briefing} />
+                ))}
+              </AnimatePresence>
+            )
+          ) : news.length === 0 ? (
             <p className="px-1 py-8 text-center text-xs text-muted-foreground">
-              Henüz briefing yok
+              Haber yükleniyor…
             </p>
           ) : (
-            <AnimatePresence initial={false}>
-              {briefings.map((briefing) => (
-                <BriefingCard key={briefing.id} briefing={briefing} />
-              ))}
-            </AnimatePresence>
+            news.map((item, i) => <NewsCard key={`${item.url}-${i}`} item={item} />)
           )}
         </div>
       </ScrollArea>

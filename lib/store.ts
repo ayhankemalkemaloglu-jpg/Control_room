@@ -8,6 +8,7 @@ import type {
   Health,
   LayerId,
   LivePnlPosition,
+  NewsItem,
   PnlUpdatePayload,
   PriceUpdatePayload,
   Stats,
@@ -46,6 +47,8 @@ interface HermesStore {
   chartTarget: ChartTarget | null;
   /** News headlines pinned to the countries they mention (globe popups). */
   countryEvents: CountryEvent[];
+  /** Latest news items (newest first) — shared by the feed tab and 𝕏 layer. */
+  news: NewsItem[];
   voiceTranscript: string;
   /** ISO_A2 -> timestamp (ms) of the most recent activation. */
   activeCountries: Map<string, number>;
@@ -72,6 +75,8 @@ interface HermesStore {
   closeChart: () => void;
   /** Replace the set of news-driven country events on the globe. */
   setCountryEvents: (events: CountryEvent[]) => void;
+  /** Replace the shared news list. */
+  setNews: (news: NewsItem[]) => void;
   /** Replace open positions wholesale (REST hydration). */
   setOpenPositions: (positions: Trade[]) => void;
   /** Replace closed trades wholesale (REST hydration). */
@@ -98,6 +103,7 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
   livePrices: {},
   chartTarget: null,
   countryEvents: [],
+  news: [],
   voiceTranscript: "",
   activeCountries: new Map<string, number>(),
   highlightedCountry: null,
@@ -139,6 +145,7 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
   openChart: (target) => set({ chartTarget: target }),
   closeChart: () => set({ chartTarget: null }),
   setCountryEvents: (events) => set({ countryEvents: events }),
+  setNews: (news) => set({ news }),
 
   setOpenPositions: (positions) => set({ openPositions: positions }),
   setClosedTrades: (trades) => set({ closedTrades: trades }),

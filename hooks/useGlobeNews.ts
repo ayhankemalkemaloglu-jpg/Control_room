@@ -17,6 +17,7 @@ const MAX_EVENTS = 6;
  */
 export function useGlobeNews(): void {
   const setCountryEvents = useHermesStore((s) => s.setCountryEvents);
+  const setNews = useHermesStore((s) => s.setNews);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,6 +26,7 @@ export function useGlobeNews(): void {
       try {
         const items = await fetchNews("crypto", 30);
         if (cancelled) return;
+        setNews(items);
         const byIso = new Map<string, CountryEvent>();
         for (const n of items) {
           const geo = matchCountry(`${n.title} ${n.description ?? ""}`);
@@ -53,5 +55,5 @@ export function useGlobeNews(): void {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [setCountryEvents]);
+  }, [setCountryEvents, setNews]);
 }

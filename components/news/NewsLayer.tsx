@@ -1,41 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { fetchNews } from "@/lib/api";
-import type { NewsItem } from "@/types/hermes";
-
-type Status = "loading" | "ready" | "empty" | "error";
+import { useHermesStore } from "@/lib/store";
 
 export function NewsLayer() {
-  const [items, setItems] = useState<NewsItem[]>([]);
-  const [status, setStatus] = useState<Status>("loading");
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = (initial: boolean) => {
-      if (initial) setStatus("loading");
-      fetchNews("crypto")
-        .then((list) => {
-          if (cancelled) return;
-          const sorted = [...list].sort(
-            (a, b) => (b.published ?? 0) - (a.published ?? 0),
-          );
-          setItems(sorted);
-          setStatus(sorted.length > 0 ? "ready" : "empty");
-        })
-        .catch(() => {
-          if (!cancelled && initial) setStatus("error");
-        });
-    };
-    load(true);
-    const id = window.setInterval(() => load(false), 30_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, []);
+  const news = useHermesStore((s) => s.news);
 
   return (
     <div className="glass flex h-full flex-col overflow-hidden rounded-[12px] border border-border">
@@ -47,16 +16,12 @@ export function NewsLayer() {
       </header>
       <ScrollArea className="min-h-0 flex-1">
         <div className="mx-auto flex max-w-2xl flex-col gap-2 p-4">
-          {status !== "ready" ? (
+          {news.length === 0 ? (
             <p className="py-12 text-center text-xs text-muted-foreground">
-              {status === "loading"
-                ? "Yükleniyor…"
-                : status === "empty"
-                  ? "Haber bulunamadı"
-                  : "Haberler yüklenemedi"}
+              Haber yükleniyor…
             </p>
           ) : (
-            items.map((n, i) => (
+            news.map((n, i) => (
               <a
                 key={`${n.url}-${i}`}
                 href={n.url}
