@@ -10,6 +10,7 @@ import {
   fetchStats,
 } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
+import { playChime } from "@/lib/sound";
 import { useHermesStore } from "@/lib/store";
 import type {
   Briefing,
@@ -71,8 +72,14 @@ export function useHermesSocket(): void {
     const onConnectError = () => setConnection("disconnected");
     const onBriefing = (payload: BriefingNewPayload) =>
       pushBriefing(briefingFromEvent(payload));
-    const onTradeOpen = (trade: Trade) => addOpenPosition(trade);
-    const onTradeClose = (trade: Trade) => closePosition(trade);
+    const onTradeOpen = (trade: Trade) => {
+      addOpenPosition(trade);
+      playChime("open");
+    };
+    const onTradeClose = (trade: Trade) => {
+      closePosition(trade);
+      playChime("close");
+    };
     // stats:update only signals "something changed" — pull the fresh numbers.
     const onStatsPing = async () => {
       const fresh = await fetchStats();

@@ -6,6 +6,7 @@ import { fetchNews } from "@/lib/api";
 import { matchCountry } from "@/lib/countries";
 import { sortNewsNewestFirst } from "@/lib/news";
 import { ensureNotificationPermission, notifyNews } from "@/lib/notify";
+import { playChime } from "@/lib/sound";
 import { useHermesStore } from "@/lib/store";
 import type { CountryEvent } from "@/types/hermes";
 
@@ -64,6 +65,7 @@ export function useGlobeNews(): void {
         const fresh = items.filter((n) => !handled.has(n.url));
         if (primed && fresh.length > 0) {
           notifyNews(fresh[0], fresh.length - 1);
+          playChime("news");
         }
         for (const n of items) handled.add(n.url);
         primed = true;

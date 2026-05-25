@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Volume2, VolumeX } from "lucide-react";
 
 import { StatsModal } from "@/components/stats/StatsModal";
 import { VoiceButton } from "@/components/voice/VoiceButton";
 import { deltaColor, formatSignedPct } from "@/lib/format";
+import { unlockAudio } from "@/lib/sound";
 import { useHermesStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { ConnectionStatus } from "@/types/hermes";
@@ -69,8 +71,22 @@ function TopMetrics() {
 
 export function TopBar() {
   const connection = useHermesStore((s) => s.connection);
+  const soundMuted = useHermesStore((s) => s.soundMuted);
+  const setSoundMuted = useHermesStore((s) => s.setSoundMuted);
   const meta = CONNECTION_META[connection];
   const [statsOpen, setStatsOpen] = useState(false);
+
+  // Hydrate mute state from localStorage on the client (no SSR mismatch).
+  useEffect(() => {
+    if (window.localStorage.getItem("hermes:soundMuted") === "1") {
+      setSoundMuted(true);
+    }
+  }, [setSoundMuted]);
+
+  const toggleSound = () => {
+    unlockAudio(); // the click is the gesture that unlocks the audio context
+    setSoundMuted(!soundMuted);
+  };
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-6">
@@ -103,6 +119,19 @@ export function TopBar() {
           />
           <span className="text-xs text-muted-foreground">{meta.label}</span>
         </div>
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-label={soundMuted ? "Sesi aç" : "Sesi kapat"}
+          title={soundMuted ? "Ses kapalı" : "Ses açık"}
+          className="text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {soundMuted ? (
+            <VolumeX className="size-4" />
+          ) : (
+            <Volume2 className="size-4" />
+          )}
+        </button>
         <VoiceButton />
       </div>
 
