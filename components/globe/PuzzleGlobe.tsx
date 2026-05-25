@@ -45,6 +45,8 @@ const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 /** How long each news country stays raised (with its popup) before the next. */
 const DWELL_MS = 5000;
+/** Blank gap between popups — the country lowers, then the next rises. */
+const GAP_MS = 1500;
 
 type GlobeComponent = (typeof import("react-globe.gl"))["default"];
 
@@ -88,21 +90,35 @@ function PuzzleGlobeImpl() {
   const highlightedCountry = useHermesStore((s) => s.highlightedCountry);
   const setHighlight = useHermesStore((s) => s.setHighlight);
 
-  // Show the news events one at a time: each country rises with its popup for
-  // DWELL_MS, then lowers as the next one takes over.
-  const [cycleIndex, setCycleIndex] = useState(0);
+  // Show the news events one at a time: a country rises with its popup for
+  // DWELL_MS, then lowers and clears for GAP_MS before the next one rises.
+  // Always pulses on/off (even with a single event) so it never sticks.
+  const [active, setActive] = useState<CountryEvent | null>(null);
   useEffect(() => {
-    setCycleIndex(0);
-    if (countryEvents.length <= 1) return;
-    const id = window.setInterval(
-      () => setCycleIndex((i) => (i + 1) % countryEvents.length),
-      DWELL_MS,
-    );
-    return () => window.clearInterval(id);
+    if (countryEvents.length === 0) {
+      setActive(null);
+      return;
+    }
+    let i = 0;
+    let cancelled = false;
+    let timer: number;
+    const showNext = () => {
+      if (cancelled) return;
+      setActive(countryEvents[i % countryEvents.length]);
+      timer = window.setTimeout(() => {
+        if (cancelled) return;
+        setActive(null); // country lowers, popup clears
+        i += 1;
+        timer = window.setTimeout(showNext, GAP_MS);
+      }, DWELL_MS);
+    };
+    showNext();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [countryEvents]);
-  const currentEvent =
-    countryEvents.length > 0 ? countryEvents[cycleIndex % countryEvents.length] : null;
-  const activeIso = currentEvent?.iso ?? null;
+  const activeIso = active?.iso ?? null;
 
   // Load react-globe.gl on the client only (WebGL — never on the server),
   // keeping a direct component reference so the ref forwards cleanly.
@@ -335,12 +351,12 @@ function PuzzleGlobeImpl() {
           onPolygonHover={handleHover}
           onPolygonClick={handleClick}
           onGlobeReady={handleReady}
-          htmlElementsData={currentEvent ? [currentEvent] : []}
+          htmlElementsData={active ? [active] : []}
           htmlElement={buildPopup}
           htmlLat={(d: object) => (d as CountryEvent).lat}
           htmlLng={(d: object) => (d as CountryEvent).lng}
           htmlAltitude={0.22}
-          ringsData={currentEvent ? [currentEvent] : []}
+          ringsData={active ? [active] : []}
           ringLat={(d: object) => (d as CountryEvent).lat}
           ringLng={(d: object) => (d as CountryEvent).lng}
           ringColor={() => "#f0d896"}
