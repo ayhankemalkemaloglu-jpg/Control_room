@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
 import { Mic, MicOff } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -25,8 +24,6 @@ export function VoiceLock({ onUnlock }: { onUnlock: () => void }) {
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [typed, setTyped] = useState("");
-  const [showType, setShowType] = useState(false);
   const [hint, setHint] = useState<string | null>(null);
 
   const recRef = useRef<SpeechRecognition | null>(null);
@@ -46,7 +43,6 @@ export function VoiceLock({ onUnlock }: { onUnlock: () => void }) {
       window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!Recognition) {
       setSupported(false);
-      setShowType(true);
       return;
     }
 
@@ -131,12 +127,6 @@ export function VoiceLock({ onUnlock }: { onUnlock: () => void }) {
     }
   };
 
-  const submitTyped = (e: FormEvent) => {
-    e.preventDefault();
-    if (isPassphrase(typed)) unlock();
-    else setError("Yanlış şifre.");
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background px-6">
       <div className="glass flex w-full max-w-sm flex-col items-center gap-6 rounded-[16px] border border-border p-10 text-center">
@@ -187,32 +177,6 @@ export function VoiceLock({ onUnlock }: { onUnlock: () => void }) {
             className="rounded-md border border-gold/40 px-4 py-2 text-sm text-gold transition-colors hover:bg-gold/10"
           >
             Dinlemeye başla
-          </button>
-        )}
-
-        {showType ? (
-          <form onSubmit={submitTyped} className="flex w-full flex-col gap-2">
-            <input
-              type="password"
-              value={typed}
-              onChange={(e) => setTyped(e.target.value)}
-              placeholder="Şifre"
-              className="w-full rounded-md border border-border bg-secondary/40 px-3 py-2 text-center text-sm text-foreground outline-none focus:border-gold/40"
-            />
-            <button
-              type="submit"
-              className="rounded-md border border-gold/40 px-4 py-2 text-sm text-gold transition-colors hover:bg-gold/10"
-            >
-              Gir
-            </button>
-          </form>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowType(true)}
-            className="text-[11px] text-muted-foreground/60 underline-offset-2 hover:underline"
-          >
-            klavyeyle gir
           </button>
         )}
       </div>
