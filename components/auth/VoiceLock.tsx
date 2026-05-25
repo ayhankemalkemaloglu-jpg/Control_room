@@ -8,16 +8,16 @@ import { cn } from "@/lib/utils";
 
 /**
  * Match the spoken passphrase tolerantly: strip everything but Turkish letters,
- * require "naber" plus a "caniko"-ish token (covers common mis-hearings like
- * dotless-ı or "janiko"). This is a soft UX lock, NOT real authentication —
- * the phrase ships in the bundle and the gate is client-side.
+ * require a greeting ("naber" / "ne haber" → "haber") plus a "cano"-ish token
+ * (covers mis-hearings like "can o", "kano", "jano"). This is a soft UX lock,
+ * NOT real authentication — the phrase ships in the bundle and the gate is
+ * client-side.
  */
 function isPassphrase(text: string): boolean {
   const n = text.toLocaleLowerCase("tr-TR").replace(/[^a-zçğıöşü]/g, "");
-  if (!n.includes("naber")) return false;
-  return ["caniko", "canıko", "canico", "canıco", "janiko", "caniku"].some((v) =>
-    n.includes(v),
-  );
+  const greeting = n.includes("naber") || n.includes("haber");
+  const name = ["cano", "kano", "jano", "cono", "canoo"].some((v) => n.includes(v));
+  return greeting && name;
 }
 
 export function VoiceLock({ onUnlock }: { onUnlock: () => void }) {
@@ -27,6 +27,7 @@ export function VoiceLock({ onUnlock }: { onUnlock: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
   const [showType, setShowType] = useState(false);
+  const [hint, setHint] = useState<string | null>(null);
 
   const recRef = useRef<SpeechRecognition | null>(null);
   const doneRef = useRef(false); // already unlocked — stop everything
@@ -65,6 +66,7 @@ export function VoiceLock({ onUnlock }: { onUnlock: () => void }) {
       }
       const t = text.trim();
       setTranscript(t.slice(-80));
+      if (t) setHint(null);
       if (isPassphrase(t)) unlock();
     };
     rec.onend = () => {
@@ -94,8 +96,22 @@ export function VoiceLock({ onUnlock }: { onUnlock: () => void }) {
       /* ignore */
     }
 
+    // Every 5s: reset the listening window (drop accumulated partials) and
+    // prompt the user to try again. onend auto-restarts a fresh session.
+    const resetTimer = window.setInterval(() => {
+      if (doneRef.current) return;
+      setTranscript("");
+      setHint("Tekrar deneyin");
+      try {
+        rec.stop();
+      } catch {
+        /* ignore */
+      }
+    }, 5000);
+
     return () => {
       keepRef.current = false;
+      window.clearInterval(resetTimer);
       rec.onresult = null;
       rec.onend = null;
       rec.onerror = null;
@@ -150,9 +166,11 @@ export function VoiceLock({ onUnlock }: { onUnlock: () => void }) {
         <p className="text-sm text-muted-foreground">
           {!supported
             ? "Tarayıcınız sesli girişi desteklemiyor"
-            : listening
-              ? "Dinliyorum — şifreyi söyleyin"
-              : "Mikrofonu başlatıp şifreyi söyleyin"}
+            : hint
+              ? hint
+              : listening
+                ? "Dinliyorum — şifreyi söyleyin"
+                : "Mikrofonu başlatıp şifreyi söyleyin"}
         </p>
 
         {transcript && (
