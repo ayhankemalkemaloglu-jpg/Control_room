@@ -4,6 +4,7 @@ import type {
   Briefing,
   ChartTarget,
   ConnectionStatus,
+  CountryEvent,
   Health,
   LayerId,
   LivePnlPosition,
@@ -43,6 +44,8 @@ interface HermesStore {
   livePrices: Record<string, number>;
   /** Symbol the chart modal is showing; null = modal closed. */
   chartTarget: ChartTarget | null;
+  /** News headlines pinned to the countries they mention (globe popups). */
+  countryEvents: CountryEvent[];
   voiceTranscript: string;
   /** ISO_A2 -> timestamp (ms) of the most recent activation. */
   activeCountries: Map<string, number>;
@@ -67,6 +70,8 @@ interface HermesStore {
   openChart: (target: ChartTarget) => void;
   /** Close the chart modal. */
   closeChart: () => void;
+  /** Replace the set of news-driven country events on the globe. */
+  setCountryEvents: (events: CountryEvent[]) => void;
   /** Replace open positions wholesale (REST hydration). */
   setOpenPositions: (positions: Trade[]) => void;
   /** Replace closed trades wholesale (REST hydration). */
@@ -92,6 +97,7 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
   liveTotalPnlPct: null,
   livePrices: {},
   chartTarget: null,
+  countryEvents: [],
   voiceTranscript: "",
   activeCountries: new Map<string, number>(),
   highlightedCountry: null,
@@ -132,6 +138,7 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
 
   openChart: (target) => set({ chartTarget: target }),
   closeChart: () => set({ chartTarget: null }),
+  setCountryEvents: (events) => set({ countryEvents: events }),
 
   setOpenPositions: (positions) => set({ openPositions: positions }),
   setClosedTrades: (trades) => set({ closedTrades: trades }),

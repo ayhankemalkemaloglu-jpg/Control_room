@@ -71,9 +71,9 @@ export async function fetchStats(window: StatsWindow = "24h"): Promise<Stats | n
   return asStats(await hermesFetch(`/trades/stats?window=${window}`));
 }
 
-export async function fetchNews(category = "crypto"): Promise<NewsItem[]> {
+export async function fetchNews(category = "crypto", count = 15): Promise<NewsItem[]> {
   return asArray<NewsItem>(
-    await hermesFetch(`/news?category=${encodeURIComponent(category)}`),
+    await hermesFetch(`/news?category=${encodeURIComponent(category)}&count=${count}`),
   );
 }
 

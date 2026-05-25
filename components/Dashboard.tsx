@@ -8,11 +8,13 @@ import { BottomBar } from "@/components/layout/BottomBar";
 import { TopBar } from "@/components/layout/TopBar";
 import { NewsLayer } from "@/components/news/NewsLayer";
 import { PositionsPanel } from "@/components/positions/PositionsPanel";
+import { useGlobeNews } from "@/hooks/useGlobeNews";
 import { useHermesSocket } from "@/hooks/useHermesSocket";
 import { useHermesStore } from "@/lib/store";
 
 export function Dashboard() {
   useHermesSocket();
+  useGlobeNews();
   const activeLayer = useHermesStore((s) => s.activeLayer);
 
   return (

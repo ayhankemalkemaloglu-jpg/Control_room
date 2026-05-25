@@ -211,6 +211,20 @@ export interface NewsItem {
   thumbnail: string | null;
 }
 
+/** A country centroid for placing news on the globe. */
+export interface CountryGeo {
+  iso: string;
+  lat: number;
+  lng: number;
+}
+
+/** A news headline pinned to the country it mentions, shown on the globe. */
+export interface CountryEvent extends CountryGeo {
+  headline: string;
+  url: string;
+  at: string;
+}
+
 /* ---- Frontend-only view models ---- */
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";

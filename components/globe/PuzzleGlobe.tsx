@@ -14,6 +14,7 @@ import type { GlobeMethods } from "react-globe.gl";
 
 import { LiveDot } from "@/components/common/LiveDot";
 import { useHermesStore } from "@/lib/store";
+import type { CountryEvent } from "@/types/hermes";
 
 /**
  * Altitudes (puzzle-piece extrusion heights). Bases stay on the globe
@@ -80,10 +81,15 @@ function PuzzleGlobeImpl() {
   const [hovered, setHovered] = useState<CountryFeature | null>(null);
   const [pinned, setPinned] = useState<Set<string>>(() => new Set());
 
-  const activeCountries = useHermesStore((s) => s.activeCountries);
+  const countryEvents = useHermesStore((s) => s.countryEvents);
   const highlightedCountry = useHermesStore((s) => s.highlightedCountry);
-  const triggerCountry = useHermesStore((s) => s.triggerCountry);
   const setHighlight = useHermesStore((s) => s.setHighlight);
+
+  // Countries currently raised because a news headline mentions them.
+  const activeIsos = useMemo(
+    () => new Set(countryEvents.map((e) => e.iso)),
+    [countryEvents],
+  );
 
   // Load react-globe.gl on the client only (WebGL — never on the server),
   // keeping a direct component reference so the ref forwards cleanly.
@@ -131,46 +137,46 @@ function PuzzleGlobeImpl() {
     [],
   );
 
-  // Valid two-letter codes used by the mock trigger.
-  const isoPool = useMemo(
-    () => features.map(isoOf).filter((code) => code.length === 2),
-    [features],
-  );
-
-  // MOCK: light up a random country every 5s so the rise animation is
-  // visible. Phase 2 replaces this with real news/event triggers.
-  useEffect(() => {
-    if (isoPool.length === 0) return;
-    const id = window.setInterval(() => {
-      const code = isoPool[Math.floor(Math.random() * isoPool.length)];
-      if (code) triggerCountry(code);
-    }, 5000);
-    return () => window.clearInterval(id);
-  }, [isoPool, triggerCountry]);
-
   // Priority: highlight > active (news) > pinned > hover > default.
   const polygonAltitude = useCallback(
     (obj: object) => {
       const feat = obj as CountryFeature;
       const iso = isoOf(feat);
       if (highlightedCountry === iso) return ALT_HIGHLIGHT;
-      if (activeCountries.has(iso)) return ALT_ACTIVE;
+      if (activeIsos.has(iso)) return ALT_ACTIVE;
       if (pinned.has(iso)) return ALT_PINNED;
       if (hovered === feat) return ALT_HOVER;
       return ALT_DEFAULT;
     },
-    [highlightedCountry, activeCountries, pinned, hovered],
+    [highlightedCountry, activeIsos, pinned, hovered],
   );
 
   const polygonCapColor = useCallback(
     (obj: object) => {
       const iso = isoOf(obj as CountryFeature);
       if (highlightedCountry === iso) return CAP_HIGHLIGHT;
-      if (activeCountries.has(iso)) return CAP_ACTIVE;
+      if (activeIsos.has(iso)) return CAP_ACTIVE;
       return CAP_DEFAULT;
     },
-    [highlightedCountry, activeCountries],
+    [highlightedCountry, activeIsos],
   );
+
+  // A small headline popup floated above the country it mentions.
+  const buildPopup = useCallback((obj: object) => {
+    const e = obj as CountryEvent;
+    const el = document.createElement("div");
+    el.style.cssText =
+      "pointer-events:auto;cursor:pointer;width:190px;transform:translate(-50%,-135%);" +
+      "background:rgba(12,10,9,0.92);border:1px solid rgba(201,169,97,0.45);" +
+      "border-radius:8px;padding:7px 9px;color:#f5e0a8;" +
+      "font:500 10px/1.35 ui-sans-serif,system-ui,sans-serif;" +
+      "box-shadow:0 6px 20px rgba(0,0,0,0.55);backdrop-filter:blur(4px);";
+    const text = e.headline.length > 96 ? `${e.headline.slice(0, 96)}…` : e.headline;
+    el.textContent = text;
+    el.title = e.headline;
+    el.onclick = () => window.open(e.url, "_blank", "noopener,noreferrer");
+    return el;
+  }, []);
 
   const polygonSideColor = useCallback(
     (obj: object) =>
@@ -285,6 +291,11 @@ function PuzzleGlobeImpl() {
           onPolygonHover={handleHover}
           onPolygonClick={handleClick}
           onGlobeReady={handleReady}
+          htmlElementsData={countryEvents}
+          htmlElement={buildPopup}
+          htmlLat={(d: object) => (d as CountryEvent).lat}
+          htmlLng={(d: object) => (d as CountryEvent).lng}
+          htmlAltitude={0.22}
         />
       )}
     </div>
