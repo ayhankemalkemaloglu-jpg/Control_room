@@ -1,0 +1,203 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { Mic, MicOff } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+
+/**
+ * Match the spoken passphrase tolerantly: strip everything but Turkish letters,
+ * require "naber" plus a "caniko"-ish token (covers common mis-hearings like
+ * dotless-ı or "janiko"). This is a soft UX lock, NOT real authentication —
+ * the phrase ships in the bundle and the gate is client-side.
+ */
+function isPassphrase(text: string): boolean {
+  const n = text.toLocaleLowerCase("tr-TR").replace(/[^a-zçğıöşü]/g, "");
+  if (!n.includes("naber")) return false;
+  return ["caniko", "canıko", "canico", "canıco", "janiko", "caniku"].some((v) =>
+    n.includes(v),
+  );
+}
+
+export function VoiceLock({ onUnlock }: { onUnlock: () => void }) {
+  const [supported, setSupported] = useState(true);
+  const [listening, setListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [typed, setTyped] = useState("");
+  const [showType, setShowType] = useState(false);
+
+  const recRef = useRef<SpeechRecognition | null>(null);
+  const doneRef = useRef(false); // already unlocked — stop everything
+  const keepRef = useRef(true); // keep auto-restarting recognition until unlocked
+
+  const unlock = useCallback(() => {
+    if (doneRef.current) return;
+    doneRef.current = true;
+    keepRef.current = false;
+    recRef.current?.abort();
+    onUnlock();
+  }, [onUnlock]);
+
+  useEffect(() => {
+    const Recognition =
+      window.SpeechRecognition ?? window.webkitSpeechRecognition;
+    if (!Recognition) {
+      setSupported(false);
+      setShowType(true);
+      return;
+    }
+
+    const rec = new Recognition();
+    rec.lang = "tr-TR";
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.maxAlternatives = 3;
+
+    rec.onresult = (event) => {
+      let text = "";
+      for (let i = 0; i < event.results.length; i += 1) {
+        const result = event.results[i];
+        for (let j = 0; j < result.length; j += 1) {
+          text += `${result[j].transcript} `;
+        }
+      }
+      const t = text.trim();
+      setTranscript(t.slice(-80));
+      if (isPassphrase(t)) unlock();
+    };
+    rec.onend = () => {
+      setListening(false);
+      if (keepRef.current && !doneRef.current) {
+        try {
+          rec.start();
+          setListening(true);
+        } catch {
+          /* already (re)starting — ignore */
+        }
+      }
+    };
+    rec.onerror = (event) => {
+      setListening(false);
+      if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+        keepRef.current = false;
+        setError("Mikrofon izni gerekli — izin verip tekrar deneyin.");
+      }
+    };
+
+    recRef.current = rec;
+    try {
+      rec.start();
+      setListening(true);
+    } catch {
+      /* ignore */
+    }
+
+    return () => {
+      keepRef.current = false;
+      rec.onresult = null;
+      rec.onend = null;
+      rec.onerror = null;
+      rec.abort();
+      recRef.current = null;
+    };
+  }, [unlock]);
+
+  const retry = () => {
+    keepRef.current = true;
+    setError(null);
+    try {
+      recRef.current?.start();
+      setListening(true);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const submitTyped = (e: FormEvent) => {
+    e.preventDefault();
+    if (isPassphrase(typed)) unlock();
+    else setError("Yanlış şifre.");
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background px-6">
+      <div className="glass flex w-full max-w-sm flex-col items-center gap-6 rounded-[16px] border border-border p-10 text-center">
+        <div className="flex flex-col items-center gap-1">
+          <span className="font-display text-2xl font-semibold tracking-tight text-foreground">
+            Hermes
+          </span>
+          <span className="text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
+            Sesli Giriş
+          </span>
+        </div>
+
+        <div
+          className={cn(
+            "relative flex size-20 items-center justify-center rounded-full border transition-colors",
+            listening
+              ? "border-gold/50 text-gold"
+              : "border-border text-muted-foreground",
+          )}
+        >
+          {listening && (
+            <span className="live-dot absolute inset-0 rounded-full border border-gold/30" />
+          )}
+          {supported ? <Mic className="size-7" /> : <MicOff className="size-7" />}
+        </div>
+
+        <p className="text-sm text-muted-foreground">
+          {!supported
+            ? "Tarayıcınız sesli girişi desteklemiyor"
+            : listening
+              ? "Dinliyorum — şifreyi söyleyin"
+              : "Mikrofonu başlatıp şifreyi söyleyin"}
+        </p>
+
+        {transcript && (
+          <p className="max-w-full truncate text-xs italic text-muted-foreground/70">
+            “{transcript}”
+          </p>
+        )}
+        {error && <p className="text-xs text-bearish">{error}</p>}
+
+        {supported && !listening && (
+          <button
+            type="button"
+            onClick={retry}
+            className="rounded-md border border-gold/40 px-4 py-2 text-sm text-gold transition-colors hover:bg-gold/10"
+          >
+            Dinlemeye başla
+          </button>
+        )}
+
+        {showType ? (
+          <form onSubmit={submitTyped} className="flex w-full flex-col gap-2">
+            <input
+              type="password"
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              placeholder="Şifre"
+              className="w-full rounded-md border border-border bg-secondary/40 px-3 py-2 text-center text-sm text-foreground outline-none focus:border-gold/40"
+            />
+            <button
+              type="submit"
+              className="rounded-md border border-gold/40 px-4 py-2 text-sm text-gold transition-colors hover:bg-gold/10"
+            >
+              Gir
+            </button>
+          </form>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setShowType(true)}
+            className="text-[11px] text-muted-foreground/60 underline-offset-2 hover:underline"
+          >
+            klavyeyle gir
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

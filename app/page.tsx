@@ -1,5 +1,5 @@
-import { Dashboard } from "@/components/Dashboard";
+import { Gate } from "@/components/auth/Gate";
 
 export default function Home() {
-  return <Dashboard />;
+  return <Gate />;
 }
