@@ -19,8 +19,11 @@ export function NewsLayer() {
       fetchNews("crypto")
         .then((list) => {
           if (cancelled) return;
-          setItems(list);
-          setStatus(list.length > 0 ? "ready" : "empty");
+          const sorted = [...list].sort(
+            (a, b) => (b.published ?? 0) - (a.published ?? 0),
+          );
+          setItems(sorted);
+          setStatus(sorted.length > 0 ? "ready" : "empty");
         })
         .catch(() => {
           if (!cancelled && initial) setStatus("error");

@@ -207,6 +207,8 @@ export interface NewsItem {
   url: string;
   source: string;
   age: string | null;
+  /** Publish time in epoch ms (for sorting); null if unparseable. */
+  published: number | null;
   description: string | null;
   thumbnail: string | null;
 }

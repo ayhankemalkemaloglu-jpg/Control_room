@@ -174,39 +174,48 @@ function PuzzleGlobeImpl() {
     [highlightedCountry, activeIso],
   );
 
-  // A headline popup (with photo when available) floated above the country.
+  // A small headline popup (with photo when available) above the country, with
+  // a downward pointer whose tip marks the country itself.
   const buildPopup = useCallback((obj: object) => {
     const e = obj as CountryEvent;
+
+    // Container anchored at the country; bottom (pointer tip) sits on the point.
     const el = document.createElement("div");
     el.style.cssText =
-      "pointer-events:auto;cursor:pointer;width:200px;transform:translate(-50%,-115%);" +
-      "background:rgba(12,10,9,0.94);border:1px solid rgba(201,169,97,0.45);" +
-      "border-radius:10px;overflow:hidden;color:#f5e0a8;" +
-      "font:500 10px/1.35 ui-sans-serif,system-ui,sans-serif;" +
-      "box-shadow:0 8px 24px rgba(0,0,0,0.6);backdrop-filter:blur(4px);";
+      "pointer-events:auto;cursor:pointer;transform:translate(-50%,-100%);" +
+      "display:flex;flex-direction:column;align-items:center;width:150px;";
+
+    const card = document.createElement("div");
+    card.style.cssText =
+      "width:100%;background:rgba(12,10,9,0.95);border:1px solid rgba(201,169,97,0.5);" +
+      "border-radius:7px;overflow:hidden;color:#f5e0a8;" +
+      "font:500 9px/1.3 ui-sans-serif,system-ui,sans-serif;" +
+      "box-shadow:0 6px 18px rgba(0,0,0,0.6);backdrop-filter:blur(4px);";
 
     if (e.thumbnail) {
       const img = document.createElement("img");
       img.src = e.thumbnail;
       img.alt = "";
-      img.style.cssText = "width:100%;height:92px;object-fit:cover;display:block;";
+      img.style.cssText = "width:100%;height:56px;object-fit:cover;display:block;";
       img.onerror = () => img.remove();
-      el.appendChild(img);
+      card.appendChild(img);
     }
 
     const body = document.createElement("div");
-    body.style.cssText = "padding:7px 9px;";
+    body.style.cssText = "padding:5px 7px;";
     const title = document.createElement("div");
     title.textContent =
-      e.headline.length > 90 ? `${e.headline.slice(0, 90)}…` : e.headline;
+      e.headline.length > 64 ? `${e.headline.slice(0, 64)}…` : e.headline;
     body.appendChild(title);
-    if (e.at) {
-      const meta = document.createElement("div");
-      meta.style.cssText = "margin-top:4px;color:rgba(201,169,97,0.7);font-size:9px;";
-      meta.textContent = e.at;
-      body.appendChild(meta);
-    }
-    el.appendChild(body);
+    card.appendChild(body);
+    el.appendChild(card);
+
+    // Pointer triangle — its tip rests on the country.
+    const tri = document.createElement("div");
+    tri.style.cssText =
+      "width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;" +
+      "border-top:7px solid rgba(201,169,97,0.65);";
+    el.appendChild(tri);
 
     el.title = e.headline;
     el.onclick = () => window.open(e.url, "_blank", "noopener,noreferrer");
@@ -331,6 +340,14 @@ function PuzzleGlobeImpl() {
           htmlLat={(d: object) => (d as CountryEvent).lat}
           htmlLng={(d: object) => (d as CountryEvent).lng}
           htmlAltitude={0.22}
+          ringsData={currentEvent ? [currentEvent] : []}
+          ringLat={(d: object) => (d as CountryEvent).lat}
+          ringLng={(d: object) => (d as CountryEvent).lng}
+          ringColor={() => "#f0d896"}
+          ringMaxRadius={4}
+          ringPropagationSpeed={1.5}
+          ringRepeatPeriod={900}
+          ringAltitude={0.016}
         />
       )}
     </div>
