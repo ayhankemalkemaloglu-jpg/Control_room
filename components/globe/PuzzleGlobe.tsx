@@ -90,29 +90,31 @@ function PuzzleGlobeImpl() {
   const highlightedCountry = useHermesStore((s) => s.highlightedCountry);
   const setHighlight = useHermesStore((s) => s.setHighlight);
 
-  // Show the news events one at a time: a country rises with its popup for
-  // DWELL_MS, then lowers and clears for GAP_MS before the next one rises.
-  // Always pulses on/off (even with a single event) so it never sticks.
+  // Show each news event ONCE: the country rises with its popup for DWELL_MS,
+  // then lowers/clears for GAP_MS, then the next *unseen* event. Once all are
+  // shown the globe goes quiet until fresh news arrives (find the rest in the
+  // Haber tab). `seen` persists across refetches so nothing repeats.
+  const seenRef = useRef<Set<string>>(new Set());
   const [active, setActive] = useState<CountryEvent | null>(null);
   useEffect(() => {
-    if (countryEvents.length === 0) {
-      setActive(null);
-      return;
-    }
-    let i = 0;
     let cancelled = false;
     let timer: number;
-    const showNext = () => {
+    const step = () => {
       if (cancelled) return;
-      setActive(countryEvents[i % countryEvents.length]);
+      const next = countryEvents.find((e) => !seenRef.current.has(e.url));
+      if (!next) {
+        setActive(null); // nothing new — wait for the next news refresh
+        return;
+      }
+      seenRef.current.add(next.url);
+      setActive(next);
       timer = window.setTimeout(() => {
         if (cancelled) return;
         setActive(null); // country lowers, popup clears
-        i += 1;
-        timer = window.setTimeout(showNext, GAP_MS);
+        timer = window.setTimeout(step, GAP_MS);
       }, DWELL_MS);
     };
-    showNext();
+    step();
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
