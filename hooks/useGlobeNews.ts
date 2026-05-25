@@ -7,7 +7,7 @@ import { matchCountry } from "@/lib/countries";
 import { useHermesStore } from "@/lib/store";
 import type { CountryEvent } from "@/types/hermes";
 
-const REFRESH_MS = 60_000;
+const REFRESH_MS = 30_000;
 const MAX_EVENTS = 6;
 
 /**
@@ -28,16 +28,20 @@ export function useGlobeNews(): void {
         const byIso = new Map<string, CountryEvent>();
         for (const n of items) {
           const geo = matchCountry(`${n.title} ${n.description ?? ""}`);
-          if (!geo || byIso.has(geo.iso)) continue;
-          byIso.set(geo.iso, {
+          if (!geo) continue;
+          const candidate: CountryEvent = {
             ...geo,
             headline: n.title,
             url: n.url,
             at: n.age ?? "",
-          });
-          if (byIso.size >= MAX_EVENTS) break;
+            thumbnail: n.thumbnail,
+          };
+          const existing = byIso.get(geo.iso);
+          // Keep one event per country, but prefer one that has a photo.
+          if (!existing) byIso.set(geo.iso, candidate);
+          else if (!existing.thumbnail && n.thumbnail) byIso.set(geo.iso, candidate);
         }
-        setCountryEvents([...byIso.values()]);
+        setCountryEvents([...byIso.values()].slice(0, MAX_EVENTS));
       } catch {
         /* transient — keep the previous events */
       }

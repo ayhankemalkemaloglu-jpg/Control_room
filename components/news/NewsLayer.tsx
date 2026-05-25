@@ -14,18 +14,23 @@ export function NewsLayer() {
 
   useEffect(() => {
     let cancelled = false;
-    setStatus("loading");
-    fetchNews("crypto")
-      .then((list) => {
-        if (cancelled) return;
-        setItems(list);
-        setStatus(list.length > 0 ? "ready" : "empty");
-      })
-      .catch(() => {
-        if (!cancelled) setStatus("error");
-      });
+    const load = (initial: boolean) => {
+      if (initial) setStatus("loading");
+      fetchNews("crypto")
+        .then((list) => {
+          if (cancelled) return;
+          setItems(list);
+          setStatus(list.length > 0 ? "ready" : "empty");
+        })
+        .catch(() => {
+          if (!cancelled && initial) setStatus("error");
+        });
+    };
+    load(true);
+    const id = window.setInterval(() => load(false), 30_000);
     return () => {
       cancelled = true;
+      window.clearInterval(id);
     };
   }, []);
 

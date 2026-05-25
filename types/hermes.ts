@@ -223,6 +223,7 @@ export interface CountryEvent extends CountryGeo {
   headline: string;
   url: string;
   at: string;
+  thumbnail: string | null;
 }
 
 /* ---- Frontend-only view models ---- */

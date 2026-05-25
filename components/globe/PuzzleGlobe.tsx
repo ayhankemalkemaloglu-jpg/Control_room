@@ -43,6 +43,9 @@ const ATMOSPHERE_COLOR = "#c9a961";
 const GEOJSON_URL = "/data/countries.geojson";
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
+/** How long each news country stays raised (with its popup) before the next. */
+const DWELL_MS = 5000;
+
 type GlobeComponent = (typeof import("react-globe.gl"))["default"];
 
 interface CountryFeature {
@@ -85,11 +88,21 @@ function PuzzleGlobeImpl() {
   const highlightedCountry = useHermesStore((s) => s.highlightedCountry);
   const setHighlight = useHermesStore((s) => s.setHighlight);
 
-  // Countries currently raised because a news headline mentions them.
-  const activeIsos = useMemo(
-    () => new Set(countryEvents.map((e) => e.iso)),
-    [countryEvents],
-  );
+  // Show the news events one at a time: each country rises with its popup for
+  // DWELL_MS, then lowers as the next one takes over.
+  const [cycleIndex, setCycleIndex] = useState(0);
+  useEffect(() => {
+    setCycleIndex(0);
+    if (countryEvents.length <= 1) return;
+    const id = window.setInterval(
+      () => setCycleIndex((i) => (i + 1) % countryEvents.length),
+      DWELL_MS,
+    );
+    return () => window.clearInterval(id);
+  }, [countryEvents]);
+  const currentEvent =
+    countryEvents.length > 0 ? countryEvents[cycleIndex % countryEvents.length] : null;
+  const activeIso = currentEvent?.iso ?? null;
 
   // Load react-globe.gl on the client only (WebGL — never on the server),
   // keeping a direct component reference so the ref forwards cleanly.
@@ -143,36 +156,58 @@ function PuzzleGlobeImpl() {
       const feat = obj as CountryFeature;
       const iso = isoOf(feat);
       if (highlightedCountry === iso) return ALT_HIGHLIGHT;
-      if (activeIsos.has(iso)) return ALT_ACTIVE;
+      if (activeIso === iso) return ALT_ACTIVE;
       if (pinned.has(iso)) return ALT_PINNED;
       if (hovered === feat) return ALT_HOVER;
       return ALT_DEFAULT;
     },
-    [highlightedCountry, activeIsos, pinned, hovered],
+    [highlightedCountry, activeIso, pinned, hovered],
   );
 
   const polygonCapColor = useCallback(
     (obj: object) => {
       const iso = isoOf(obj as CountryFeature);
       if (highlightedCountry === iso) return CAP_HIGHLIGHT;
-      if (activeIsos.has(iso)) return CAP_ACTIVE;
+      if (activeIso === iso) return CAP_ACTIVE;
       return CAP_DEFAULT;
     },
-    [highlightedCountry, activeIsos],
+    [highlightedCountry, activeIso],
   );
 
-  // A small headline popup floated above the country it mentions.
+  // A headline popup (with photo when available) floated above the country.
   const buildPopup = useCallback((obj: object) => {
     const e = obj as CountryEvent;
     const el = document.createElement("div");
     el.style.cssText =
-      "pointer-events:auto;cursor:pointer;width:190px;transform:translate(-50%,-135%);" +
-      "background:rgba(12,10,9,0.92);border:1px solid rgba(201,169,97,0.45);" +
-      "border-radius:8px;padding:7px 9px;color:#f5e0a8;" +
+      "pointer-events:auto;cursor:pointer;width:200px;transform:translate(-50%,-115%);" +
+      "background:rgba(12,10,9,0.94);border:1px solid rgba(201,169,97,0.45);" +
+      "border-radius:10px;overflow:hidden;color:#f5e0a8;" +
       "font:500 10px/1.35 ui-sans-serif,system-ui,sans-serif;" +
-      "box-shadow:0 6px 20px rgba(0,0,0,0.55);backdrop-filter:blur(4px);";
-    const text = e.headline.length > 96 ? `${e.headline.slice(0, 96)}…` : e.headline;
-    el.textContent = text;
+      "box-shadow:0 8px 24px rgba(0,0,0,0.6);backdrop-filter:blur(4px);";
+
+    if (e.thumbnail) {
+      const img = document.createElement("img");
+      img.src = e.thumbnail;
+      img.alt = "";
+      img.style.cssText = "width:100%;height:92px;object-fit:cover;display:block;";
+      img.onerror = () => img.remove();
+      el.appendChild(img);
+    }
+
+    const body = document.createElement("div");
+    body.style.cssText = "padding:7px 9px;";
+    const title = document.createElement("div");
+    title.textContent =
+      e.headline.length > 90 ? `${e.headline.slice(0, 90)}…` : e.headline;
+    body.appendChild(title);
+    if (e.at) {
+      const meta = document.createElement("div");
+      meta.style.cssText = "margin-top:4px;color:rgba(201,169,97,0.7);font-size:9px;";
+      meta.textContent = e.at;
+      body.appendChild(meta);
+    }
+    el.appendChild(body);
+
     el.title = e.headline;
     el.onclick = () => window.open(e.url, "_blank", "noopener,noreferrer");
     return el;
@@ -291,7 +326,7 @@ function PuzzleGlobeImpl() {
           onPolygonHover={handleHover}
           onPolygonClick={handleClick}
           onGlobeReady={handleReady}
-          htmlElementsData={countryEvents}
+          htmlElementsData={currentEvent ? [currentEvent] : []}
           htmlElement={buildPopup}
           htmlLat={(d: object) => (d as CountryEvent).lat}
           htmlLng={(d: object) => (d as CountryEvent).lng}
