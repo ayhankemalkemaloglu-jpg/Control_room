@@ -78,6 +78,24 @@ export async function fetchNews(category = "crypto", count = 15): Promise<NewsIt
   );
 }
 
+/**
+ * Ask the voice assistant (POST /assistant). The backend returns a short reply
+ * even on a handled failure, so we surface `reply` directly; only a transport
+ * failure throws (the caller speaks a fallback).
+ */
+export async function askAssistant(message: string): Promise<string> {
+  const res = await fetch(`${API_URL}/assistant`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${AUTH_TOKEN}`,
+    },
+    body: JSON.stringify({ message }),
+  });
+  const data = (await res.json()) as { reply?: string };
+  return data.reply ?? "Cevap alınamadı.";
+}
+
 export async function fetchTurkeyMarkets(): Promise<TurkeyMarkets | null> {
   try {
     const json = await hermesFetch("/markets/turkey");

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 
+import { AssistantButton } from "@/components/voice/AssistantButton";
 import { StatsModal } from "@/components/stats/StatsModal";
 import { VoiceButton } from "@/components/voice/VoiceButton";
 import { deltaColor, formatSignedPct } from "@/lib/format";
@@ -119,6 +120,7 @@ export function TopBar() {
           />
           <span className="text-xs text-muted-foreground">{meta.label}</span>
         </div>
+        <AssistantButton />
         <button
           type="button"
           onClick={toggleSound}
