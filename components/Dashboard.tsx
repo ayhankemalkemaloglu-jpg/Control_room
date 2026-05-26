@@ -1,5 +1,6 @@
 "use client";
 
+import { AgentChat } from "@/components/assistant/AgentChat";
 import { ChartModal } from "@/components/chart/ChartModal";
 import { HermesFeed } from "@/components/feed/HermesFeed";
 import { PuzzleGlobe } from "@/components/globe/PuzzleGlobe";
@@ -33,6 +34,8 @@ export function Dashboard() {
             <NewsLayer />
           ) : activeLayer === "turkey" ? (
             <TurkeyLayer />
+          ) : activeLayer === "agent" ? (
+            <AgentChat />
           ) : (
             <PuzzleGlobe />
           )}

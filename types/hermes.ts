@@ -253,4 +253,4 @@ export interface CountryEvent extends CountryGeo {
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
-export type LayerId = "world" | "turkey" | "news";
+export type LayerId = "world" | "turkey" | "news" | "agent";
