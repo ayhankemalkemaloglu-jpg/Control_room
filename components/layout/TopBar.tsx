@@ -59,8 +59,14 @@ function TopMetrics() {
         valueClass={stats ? deltaColor(stats.avg_pnl_pct) : undefined}
       />
       <Metric
-        label="Başarı"
+        label="Win"
         value={stats ? `${Math.round(stats.win_rate * 100)}%` : "—"}
+        valueClass={stats ? "text-bullish" : undefined}
+      />
+      <Metric
+        label="Lose"
+        value={stats ? `${Math.round(stats.loss_rate * 100)}%` : "—"}
+        valueClass={stats ? "text-bearish" : undefined}
       />
       <Metric
         label="Açık / Kapalı"

@@ -84,7 +84,10 @@ export interface GroupStat {
   key: string;
   total_trades: number;
   closed_count: number;
+  win_count: number;
+  loss_count: number;
   win_rate: number;
+  loss_rate: number;
   avg_pnl_pct: number;
   total_pnl_pct: number;
 }
@@ -95,7 +98,10 @@ export interface Stats {
   total_trades: number;
   open_count: number;
   closed_count: number;
+  win_count: number;
+  loss_count: number;
   win_rate: number;
+  loss_rate: number;
   /** null when there are no losses yet — backend avoids non-serialisable Infinity. */
   win_loss_ratio: number | null;
   avg_pnl_pct: number;
