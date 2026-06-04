@@ -3,7 +3,7 @@
 import { AgentChat } from "@/components/assistant/AgentChat";
 import { ChartModal } from "@/components/chart/ChartModal";
 import { HermesFeed } from "@/components/feed/HermesFeed";
-import { PuzzleGlobe } from "@/components/globe/PuzzleGlobe";
+import { ShaderBackground } from "@/components/globe/ShaderBackground";
 import { LayerSwitcher } from "@/components/globe/LayerSwitcher";
 import { BottomBar } from "@/components/layout/BottomBar";
 import { TopBar } from "@/components/layout/TopBar";
@@ -37,7 +37,7 @@ export function Dashboard() {
           ) : activeLayer === "agent" ? (
             <AgentChat />
           ) : (
-            <PuzzleGlobe />
+            <ShaderBackground />
           )}
         </section>
 
