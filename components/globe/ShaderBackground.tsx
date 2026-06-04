@@ -26,6 +26,7 @@ out vec4 _fragColor;
 // Champagne-gold light tints (was orange + blue → both gold for black/gold theme)
 #define GOLD_A vec4(1e1, 6.5, 2.5, 0.)   // warm gold
 #define GOLD_B vec4(1e1, 8.0, 4.0, 0.)   // pale champagne
+#define BRIGHT 2.4                        // exposure: low but not too low
 
 float boxen(vec3 p) {
     p = abs(fract(p/2e1)*2e1 - 1e1) - 1.;
@@ -99,7 +100,7 @@ void mainImage(out vec4 o, in vec2 u) {
         ref +=  lights + 1./max(s, .01);
 
     o += o*ref;
-    o = tanh(o / 1e9 * exp(GOLD_A*d/5e2));
+    o = tanh(o / 1e9 * BRIGHT * exp(GOLD_A*d/5e2));
 }
 
 void main() {

@@ -50,30 +50,26 @@ export function PriceChart({ symbol, timeframe, entryPrice }: PriceChartProps) {
       autoSize: true,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#b9b2a4", // warm muted, fits black+gold
-        fontFamily:
-          "var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace",
+        textColor: "#9ca3af",
       },
       grid: {
-        vertLines: { color: "rgba(201,169,97,0.05)" },
-        horzLines: { color: "rgba(201,169,97,0.05)" },
+        vertLines: { color: "rgba(255,255,255,0.04)" },
+        horzLines: { color: "rgba(255,255,255,0.04)" },
       },
-      rightPriceScale: { borderColor: "rgba(201,169,97,0.12)" },
+      rightPriceScale: { borderColor: "rgba(255,255,255,0.08)" },
       timeScale: {
-        borderColor: "rgba(201,169,97,0.12)",
+        borderColor: "rgba(255,255,255,0.08)",
         timeVisible: true,
         secondsVisible: false,
       },
     });
-    // Black + gold candle palette: bright champagne gold for up, dim bronze for
-    // down — keeps up/down legible while staying on-theme with the shader.
     const series = chart.addCandlestickSeries({
-      upColor: "#c9a961",
-      downColor: "#6e6356",
-      borderUpColor: "#d8bd7a",
-      borderDownColor: "#857a68",
-      wickUpColor: "#d8bd7a",
-      wickDownColor: "#857a68",
+      upColor: "#22c55e",
+      downColor: "#ef4444",
+      borderUpColor: "#22c55e",
+      borderDownColor: "#ef4444",
+      wickUpColor: "#22c55e",
+      wickDownColor: "#ef4444",
     });
 
     chartRef.current = chart;
@@ -136,7 +132,7 @@ export function PriceChart({ symbol, timeframe, entryPrice }: PriceChartProps) {
     if (!series || entryPrice === undefined || status !== "ready") return;
     const line = series.createPriceLine({
       price: entryPrice,
-      color: "#c9a961",
+      color: "#d4af37",
       lineWidth: 1,
       lineStyle: LineStyle.Dashed,
       axisLabelVisible: true,
