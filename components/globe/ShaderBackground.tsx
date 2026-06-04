@@ -3,12 +3,13 @@
 import { useEffect, useRef } from "react";
 
 /**
- * The "black hole" background shader — WebGL2 raymarch (Shadertoy-style).
- * This is the ONLY shader on the site; recolored to black + champagne-gold to
- * match the theme. Tuned for ~60fps via DPR=1 + 0.75 render scale + tab-hidden
- * pause. Iteration counts kept faithful to the source (fps comes from scale).
+ * The "black hole" background shader — WebGL2 raymarch (Shadertoy-style),
+ * used verbatim. Only the minimal WebGL2 wrapper (version/precision/uniforms/
+ * out + main) is added; the shader body and colors are unchanged. Tuned for
+ * ~60fps via DPR=1 + 0.75 render scale + tab-hidden pause.
  */
 
+// --- BEGIN verbatim shader (only the wrapper around it is ours) -------------
 const FRAG = /* glsl */ `#version 300 es
 precision highp float;
 uniform float iTime;
@@ -21,14 +22,11 @@ out vec4 _fragColor;
 #define R(a) mat2(cos(a+vec4(0,33,11,0)))
 #define N normalize
 
-// Single champagne-gold tint (≈#c9a961) — both light sources + tint use it so
-// the whole scene reads as black + gold (the source's blue light is gone).
-#define GOLD vec4(1e1, 8.0, 4.5, 0.)
-#define BRIGHT 2.4   // exposure: low but not too low
-
 float boxen(vec3 p) {
+
     p = abs(fract(p/2e1)*2e1 - 1e1) - 1.;
     return min(p.x, min(p.y, p.z));
+
 }
 
 vec4 lights;
@@ -45,13 +43,14 @@ float map(vec3 p) {
     float e = min(red=length(p.xy -  sin(p.z / 12. + vec2(0, 1.3))*12.) - 1.,
                   blue=length(p.xy -  sin(p.z / 16. + vec2(0, .7))*16.) - 2.);
 
-    lights += GOLD/(.1+abs(red));
-    lights += GOLD/(.1+abs(blue)/1e1);
+    lights += vec4(1e1,2,1,0)/(.1+abs(red));
+    lights += vec4(1,2,1e1,0)/(.1+abs(blue)/1e1);;
 
     p = abs(p);
 
     float tex = abs(length(sin(p*cos(p.yzx/3e1)*4.)/(p*4.)));
     float tun = min(32.-p.x - p.y, 24.-p.y);
+
 
     float d = max(min(m, g), tun)-tex;
     return min(e, d);
@@ -76,7 +75,9 @@ void mainImage(out vec4 o, in vec2 u) {
         d += s = map(p)*.8,
         o += lights + 1./max(s, .01);
 
-    // normal (tetrahedron technique, iquilezles)
+
+    // normal
+    // tetrahedron technique: https://iquilezles.org/articles/normalsSDF/
     const float h = 0.005;
     const vec2 k = vec2(1,-1);
     vec3 n = N(k.xyy*map( p + k.xyy*h ) +
@@ -96,7 +97,7 @@ void mainImage(out vec4 o, in vec2 u) {
         ref +=  lights + 1./max(s, .01);
 
     o += o*ref;
-    o = tanh(o / 1e9 * BRIGHT * exp(GOLD*d/5e2));
+    o = tanh(o / 1e9 * exp(vec4(1e1,2,1,0)*d/5e2));
 }
 
 void main() {
@@ -105,6 +106,7 @@ void main() {
     _fragColor = vec4(o.rgb, 1.0);
 }
 `;
+// --- END verbatim shader ----------------------------------------------------
 
 const VERT = /* glsl */ `#version 300 es
 precision highp float;
