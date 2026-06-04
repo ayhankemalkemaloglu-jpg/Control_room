@@ -3,14 +3,12 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Full-screen WebGL2 raymarch shader (Shadertoy-style `mainImage`).
- * Black + champagne-gold palette to match the site theme (--gold #c9a961).
- * Tuned for ~60fps: capped DPR, reduced march/reflection iterations, and it
- * pauses when the tab is hidden or the element scrolls out of view.
+ * The "black hole" background shader — WebGL2 raymarch (Shadertoy-style).
+ * This is the ONLY shader on the site; recolored to black + champagne-gold to
+ * match the theme. Tuned for ~60fps via DPR=1 + 0.75 render scale + tab-hidden
+ * pause. Iteration counts kept faithful to the source (fps comes from scale).
  */
 
-// Fragment shader — user-provided raymarch, recolored black+gold and the
-// iteration counts trimmed for 60fps. Wrapped for WebGL2 (#version 300 es).
 const FRAG = /* glsl */ `#version 300 es
 precision highp float;
 uniform float iTime;
@@ -23,10 +21,10 @@ out vec4 _fragColor;
 #define R(a) mat2(cos(a+vec4(0,33,11,0)))
 #define N normalize
 
-// Champagne-gold light tints (was orange + blue → both gold for black/gold theme)
-#define GOLD_A vec4(1e1, 6.5, 2.5, 0.)   // warm gold
-#define GOLD_B vec4(1e1, 8.0, 4.0, 0.)   // pale champagne
-#define BRIGHT 2.4                        // exposure: low but not too low
+// Single champagne-gold tint (≈#c9a961) — both light sources + tint use it so
+// the whole scene reads as black + gold (the source's blue light is gone).
+#define GOLD vec4(1e1, 8.0, 4.5, 0.)
+#define BRIGHT 2.4   // exposure: low but not too low
 
 float boxen(vec3 p) {
     p = abs(fract(p/2e1)*2e1 - 1e1) - 1.;
@@ -47,8 +45,8 @@ float map(vec3 p) {
     float e = min(red=length(p.xy -  sin(p.z / 12. + vec2(0, 1.3))*12.) - 1.,
                   blue=length(p.xy -  sin(p.z / 16. + vec2(0, .7))*16.) - 2.);
 
-    lights += GOLD_A/(.1+abs(red));
-    lights += GOLD_B/(.1+abs(blue)/1e1);
+    lights += GOLD/(.1+abs(red));
+    lights += GOLD/(.1+abs(blue)/1e1);
 
     p = abs(p);
 
@@ -73,14 +71,12 @@ void mainImage(out vec4 o, in vec2 u) {
           D = N(vec3(R(sin(T*.005)*.4)*u, 1)
              * mat3(-X, cross(X, Z), Z));
 
-    // main march — kept at 100 steps for faithful depth/brightness; fps comes
-    // from the 0.75 resolution scale + DPR=1 cap instead (least-visible trim).
     for(; i++ < 1e2;)
         p = ro + D * d,
         d += s = map(p)*.8,
         o += lights + 1./max(s, .01);
 
-    // normal (tetrahedron technique)
+    // normal (tetrahedron technique, iquilezles)
     const float h = 0.005;
     const vec2 k = vec2(1,-1);
     vec3 n = N(k.xyy*map( p + k.xyy*h ) +
@@ -91,16 +87,16 @@ void mainImage(out vec4 o, in vec2 u) {
     // diffuse
     o *= (.1 + max(dot(n, -D), 0.));
 
-    // reflection march — modest trim 50 -> 30 (reflections are subtle)
+    // reflection march
     vec4 ref;
     lights = vec4(0);
-    for(p += n*.05, D = reflect(D, n), s=i=0.; i++<3e1; )
+    for(p += n*.05, D = reflect(D, n), s=i=0.; i++<5e1; )
         p += D*s,
         s = map(p)*.8,
         ref +=  lights + 1./max(s, .01);
 
     o += o*ref;
-    o = tanh(o / 1e9 * BRIGHT * exp(GOLD_A*d/5e2));
+    o = tanh(o / 1e9 * BRIGHT * exp(GOLD*d/5e2));
 }
 
 void main() {
@@ -147,9 +143,7 @@ export function ShaderBackground() {
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
 
-    // Cap DPR at 1 and render at 75% scale → big fill-rate win for the heavy
-    // raymarch while staying crisp enough as a background visual.
-    const SCALE = 0.75;
+    const SCALE = 0.75; // render at 75% then upscale → big fill-rate win
     const resize = () => {
       const w = Math.max(1, Math.floor(canvas.clientWidth * SCALE));
       const h = Math.max(1, Math.floor(canvas.clientHeight * SCALE));
@@ -173,7 +167,6 @@ export function ShaderBackground() {
     };
     raf = requestAnimationFrame(render);
 
-    // Pause when the tab is hidden (saves GPU / battery).
     const onVis = () => {
       if (document.hidden) {
         running = false;
