@@ -78,6 +78,24 @@ export async function fetchNews(category = "crypto", count = 15): Promise<NewsIt
   );
 }
 
+/**
+ * Ask the voice assistant (POST /assistant). The backend returns a short reply
+ * even on a handled failure, so we surface `reply` directly; only a transport
+ * failure throws (the caller speaks a fallback).
+ */
+export async function askAssistant(message: string): Promise<string> {
+  const res = await fetch(`${API_URL}/assistant`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${AUTH_TOKEN}`,
+    },
+    body: JSON.stringify({ message }),
+  });
+  const data = (await res.json()) as { reply?: string };
+  return data.reply ?? "Cevap alınamadı.";
+}
+
 export async function fetchTurkeyMarkets(): Promise<TurkeyMarkets | null> {
   try {
     const json = await hermesFetch("/markets/turkey");
@@ -118,4 +136,45 @@ export async function fetchHealth(): Promise<Health | null> {
   } catch {
     return null;
   }
+}
+
+/* ---- Assistant (Hermes ile Konuşma) ---- */
+
+export interface AssistantMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/** Is the backend assistant wired (ASSISTANT_API_KEY set)? Used to gate the tab. */
+export async function fetchAssistantConfigured(): Promise<boolean> {
+  try {
+    const json = (await hermesFetch("/assistant/health")) as { configured?: boolean };
+    return Boolean(json?.configured);
+  } catch {
+    return false;
+  }
+}
+
+/** Send a chat turn; returns the assistant's reply text. Throws on failure. */
+export async function chatWithAssistant(messages: AssistantMessage[]): Promise<string> {
+  const res = await fetch(`${API_URL}/assistant/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${AUTH_TOKEN}`,
+    },
+    body: JSON.stringify({ messages }),
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    reply?: string;
+    error?: string;
+    message?: string;
+  };
+  if (!res.ok || typeof data.reply !== "string") {
+    if (data.error === "not_configured") {
+      throw new Error("Asistan yapılandırılmadı: sunucuda ASSISTANT_API_KEY ayarla.");
+    }
+    throw new Error(data.message || `Asistan hatası (${res.status})`);
+  }
+  return data.reply;
 }

@@ -48,6 +48,11 @@ const DWELL_MS = 5000;
 /** Blank gap between popups — the country lowers, then the next rises. */
 const GAP_MS = 1500;
 
+// Headline URLs already shown as a popup. MODULE-level (not component state)
+// so it survives this component unmounting when the user switches layers —
+// otherwise every return to the globe replays the same old popups.
+const SHOWN_POPUPS = new Set<string>();
+
 type GlobeComponent = (typeof import("react-globe.gl"))["default"];
 
 interface CountryFeature {
@@ -91,22 +96,22 @@ function PuzzleGlobeImpl() {
   const setHighlight = useHermesStore((s) => s.setHighlight);
 
   // Show each news event ONCE: the country rises with its popup for DWELL_MS,
-  // then lowers/clears for GAP_MS, then the next *unseen* event. Once all are
+  // then lowers/clears for GAP_MS, then the next *unshown* event. Once all are
   // shown the globe goes quiet until fresh news arrives (find the rest in the
-  // Haber tab). `seen` persists across refetches so nothing repeats.
-  const seenRef = useRef<Set<string>>(new Set());
+  // Haber tab). SHOWN_POPUPS is module-level so it persists across refetches
+  // AND across this component unmounting on layer switches — nothing repeats.
   const [active, setActive] = useState<CountryEvent | null>(null);
   useEffect(() => {
     let cancelled = false;
     let timer: number;
     const step = () => {
       if (cancelled) return;
-      const next = countryEvents.find((e) => !seenRef.current.has(e.url));
+      const next = countryEvents.find((e) => !SHOWN_POPUPS.has(e.url));
       if (!next) {
         setActive(null); // nothing new — wait for the next news refresh
         return;
       }
-      seenRef.current.add(next.url);
+      SHOWN_POPUPS.add(next.url);
       setActive(next);
       timer = window.setTimeout(() => {
         if (cancelled) return;

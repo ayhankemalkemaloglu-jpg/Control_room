@@ -84,7 +84,10 @@ export interface GroupStat {
   key: string;
   total_trades: number;
   closed_count: number;
+  win_count: number;
+  loss_count: number;
   win_rate: number;
+  loss_rate: number;
   avg_pnl_pct: number;
   total_pnl_pct: number;
 }
@@ -95,7 +98,10 @@ export interface Stats {
   total_trades: number;
   open_count: number;
   closed_count: number;
+  win_count: number;
+  loss_count: number;
   win_rate: number;
+  loss_rate: number;
   /** null when there are no losses yet — backend avoids non-serialisable Infinity. */
   win_loss_ratio: number | null;
   avg_pnl_pct: number;
@@ -207,8 +213,8 @@ export interface NewsItem {
   url: string;
   source: string;
   age: string | null;
-  /** Publish time in epoch ms (for sorting); null if unparseable. */
-  published: number | null;
+  /** ISO publish time (newest-first sorting / dedup); null if unknown. */
+  published_at: string | null;
   description: string | null;
   thumbnail: string | null;
 }
@@ -247,4 +253,4 @@ export interface CountryEvent extends CountryGeo {
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
-export type LayerId = "world" | "turkey" | "news";
+export type LayerId = "world" | "turkey" | "news" | "agent";

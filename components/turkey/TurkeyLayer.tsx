@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { fetchNews, fetchTurkeyMarkets } from "@/lib/api";
 import { deltaColor } from "@/lib/format";
+import { sortNewsNewestFirst } from "@/lib/news";
 import { cn } from "@/lib/utils";
 import type { NewsItem, Quote, TurkeyMarkets } from "@/types/hermes";
 
@@ -47,7 +48,7 @@ export function TurkeyLayer() {
       fetchNews("turkey")
         .then((list) => {
           if (cancelled) return;
-          setNews([...list].sort((a, b) => (b.published ?? 0) - (a.published ?? 0)));
+          setNews(sortNewsNewestFirst(list));
         })
         .catch(() => {});
     };

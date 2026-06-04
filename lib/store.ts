@@ -1,5 +1,6 @@
 import { create } from "zustand";
 
+import { sortNewsNewestFirst } from "@/lib/news";
 import type {
   Briefing,
   ChartTarget,
@@ -54,6 +55,8 @@ interface HermesStore {
   activeCountries: Map<string, number>;
   /** Manually spotlighted country (ISO). Persists until changed/cleared. */
   highlightedCountry: string | null;
+  /** Mute the new-news / trade chimes (persisted to localStorage). */
+  soundMuted: boolean;
 
   setConnection: (status: ConnectionStatus) => void;
   setActiveLayer: (layer: LayerId) => void;
@@ -87,6 +90,8 @@ interface HermesStore {
   removeCountry: (iso: string) => void;
   /** Spotlight a country (or clear with null). Does not auto-expire. */
   setHighlight: (iso: string | null) => void;
+  /** Set + persist the sound mute flag. */
+  setSoundMuted: (muted: boolean) => void;
 }
 
 export const useHermesStore = create<HermesStore>((set, get) => ({
@@ -107,6 +112,7 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
   voiceTranscript: "",
   activeCountries: new Map<string, number>(),
   highlightedCountry: null,
+  soundMuted: false,
 
   setConnection: (status) => set({ connection: status }),
   setActiveLayer: (layer) => set({ activeLayer: layer }),
@@ -145,7 +151,7 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
   openChart: (target) => set({ chartTarget: target }),
   closeChart: () => set({ chartTarget: null }),
   setCountryEvents: (events) => set({ countryEvents: events }),
-  setNews: (news) => set({ news }),
+  setNews: (news) => set({ news: sortNewsNewestFirst(news) }),
 
   setOpenPositions: (positions) => set({ openPositions: positions }),
   setClosedTrades: (trades) => set({ closedTrades: trades }),
@@ -180,4 +186,11 @@ export const useHermesStore = create<HermesStore>((set, get) => ({
 
   setHighlight: (iso) =>
     set({ highlightedCountry: iso ? iso.toUpperCase() : null }),
+
+  setSoundMuted: (muted) => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("hermes:soundMuted", muted ? "1" : "0");
+    }
+    set({ soundMuted: muted });
+  },
 }));
